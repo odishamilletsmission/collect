@@ -58,7 +58,7 @@ class InstancesDataService(
         val instancesRepository = projectDependencyModule.instancesRepository
         instancesRepository.getCountByStatus(
             Instance.STATUS_SUBMITTED,
-            STATUS_SUBMISSION_FAILED
+            Instance.STATUS_SUBMISSION_FAILED
         )
     }
 

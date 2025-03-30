@@ -73,7 +73,7 @@ class DasboardFormListAdapter(
         } else {
             View.GONE
         }
-        val currentProject = projectsDataService.getCurrentProject()
+        val currentProject = projectsDataService.requireCurrentProject()
 
         draftCount.text = getFormattedCount(
             InstanceCountHelper.getInstanceCount(
@@ -102,7 +102,7 @@ class DasboardFormListAdapter(
             )
         )
 
-        cardView.background = Utils.getRandomGradientDrawable()
+        //cardView.background = Utils.getRandomGradientDrawable()
 
         mapButton.setOnClickListener {
             if (MultiClickGuard.allowClick(javaClass.name)) {
@@ -118,13 +118,13 @@ class DasboardFormListAdapter(
 
         readyButton.setOnClickListener {
             if (MultiClickGuard.allowClick(javaClass.name)) {
-               // listener.onReadyButtonClick(item.formId)
+                formActionListener.onReadyClick(item.formId)
             }
         }
 
         sentButton.setOnClickListener {
             if (MultiClickGuard.allowClick(javaClass.name)) {
-               // listener.onSentButtonClick(item.formId)
+                formActionListener.onSentClick(item.formId)
             }
         }
     }

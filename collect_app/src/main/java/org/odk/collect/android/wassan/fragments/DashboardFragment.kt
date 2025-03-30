@@ -14,6 +14,7 @@ import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.odk.collect.android.R
+import org.odk.collect.android.activities.AppListActivity
 import org.odk.collect.android.activities.FormMapActivity
 import org.odk.collect.android.activities.InstanceChooserList
 import org.odk.collect.android.formlists.blankformlist.BlankFormListViewModel
@@ -24,11 +25,13 @@ import org.odk.collect.android.projects.ProjectsDataService
 import org.odk.collect.android.utilities.ApplicationConstants
 import org.odk.collect.android.utilities.FormsRepositoryProvider
 import org.odk.collect.android.utilities.InstancesRepositoryProvider
+import org.odk.collect.android.wassan.app.CustomInstanceChooserList
 import org.odk.collect.android.wassan.listeners.FormActionListener
 import org.odk.collect.android.wassan.model.DasboardFormListAdapter
 import org.odk.collect.androidshared.ui.DialogFragmentUtils
 import org.odk.collect.androidshared.ui.ObviousProgressBar
 import org.odk.collect.androidshared.ui.SnackbarUtils
+import org.odk.collect.forms.instances.Instance
 import org.odk.collect.lists.EmptyListView
 import org.odk.collect.lists.RecyclerViewUtils
 import org.odk.collect.permissions.PermissionListener
@@ -170,9 +173,31 @@ class DashboardFragment : Fragment(), OnFormItemClickListener,FormActionListener
         )
     }
 
+    /*override fun onDraftClick(formId: String) {
+        lifecycleScope.launch {
+            val hasInstances = withContext(Dispatchers.IO) {
+                instancesRepositoryProvider.create().all.any { it.formId == formId }
+            }
+
+            if (hasInstances) {
+                val intent = Intent(requireActivity(), InstanceChooserList::class.java).apply {
+                    putExtra(ApplicationConstants.BundleKeys.FORM_MODE, ApplicationConstants.FormModes.EDIT_SAVED)
+                    putExtra("FILTER_ID", formId) // Pass the filter ID
+                }
+                formLauncher.launch(intent)
+            } else {
+                Toast.makeText(requireContext(), "No matching drafts found!", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }*/
+
+
+
+
     override fun onDraftClick(formId: String) {
+
         formLauncher.launch(
-            Intent(requireActivity(), InstanceChooserList::class.java).apply {
+            Intent(requireActivity(), CustomInstanceChooserList::class.java).apply {
                 putExtra(
                     ApplicationConstants.BundleKeys.FORM_MODE,
                     ApplicationConstants.FormModes.EDIT_SAVED,
@@ -182,12 +207,20 @@ class DashboardFragment : Fragment(), OnFormItemClickListener,FormActionListener
         )
     }
 
+
+
+
     override fun onReadyClick(formId: String) {
         TODO("Not yet implemented")
     }
 
     override fun onSentClick(formId: String) {
         TODO("Not yet implemented")
+    }
+
+    private fun getFilteredInstances(formId: String): List<Instance> {
+        val instancesRepository = instancesRepositoryProvider.create() // Get repository instance
+        return instancesRepository.all.filter { it.formId == formId }
     }
 
 }

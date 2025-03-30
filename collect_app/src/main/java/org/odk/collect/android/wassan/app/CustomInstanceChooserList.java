@@ -1,19 +1,4 @@
-/*
- * Copyright (C) 2009 University of Washington
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
-
-package org.odk.collect.android.activities;
-
+package org.odk.collect.android.wassan.app;
 import static org.odk.collect.android.utilities.ApplicationConstants.SortingOrder.BY_DATE_ASC;
 import static org.odk.collect.android.utilities.ApplicationConstants.SortingOrder.BY_DATE_DESC;
 import static org.odk.collect.android.utilities.ApplicationConstants.SortingOrder.BY_NAME_ASC;
@@ -35,6 +20,7 @@ import androidx.loader.app.LoaderManager;
 import androidx.loader.content.Loader;
 
 import org.odk.collect.android.R;
+import org.odk.collect.android.activities.AppListActivity;
 import org.odk.collect.android.adapters.InstanceListCursorAdapter;
 import org.odk.collect.android.dao.CursorLoaderFactory;
 import org.odk.collect.db.sqlite.DatabaseConnection;
@@ -71,7 +57,7 @@ import javax.inject.Inject;
  * UI thread.
  */
 @Deprecated
-public class InstanceChooserList extends AppListActivity implements AdapterView.OnItemClickListener, LoaderManager.LoaderCallbacks<Cursor> {
+public class CustomInstanceChooserList extends AppListActivity implements AdapterView.OnItemClickListener, LoaderManager.LoaderCallbacks<Cursor> {
     private static final String INSTANCE_LIST_ACTIVITY_SORTING_ORDER = "instanceListActivitySortingOrder";
     private static final String VIEW_SENT_FORM_SORTING_ORDER = "ViewSentFormSortingOrder";
 
@@ -110,6 +96,8 @@ public class InstanceChooserList extends AppListActivity implements AdapterView.
         DaggerUtils.getComponent(this).inject(this);
 
         String formMode = getIntent().getStringExtra(ApplicationConstants.BundleKeys.FORM_MODE);
+        String filterId = getIntent().getStringExtra("FILTER_ID"); // Default to -1 if not found
+
         if (formMode == null || ApplicationConstants.FormModes.EDIT_SAVED.equalsIgnoreCase(formMode)) {
             setTitle(getString(org.odk.collect.strings.R.string.review_data));
             editMode = true;
@@ -139,6 +127,10 @@ public class InstanceChooserList extends AppListActivity implements AdapterView.
                         org.odk.collect.strings.R.string.sort_by_date_asc
                 )
         );
+
+        if (filterId != null && !filterId.isEmpty()) {
+            applyFilterId(filterId);
+        }
 
         init();
         BulkFinalizationViewModel bulkFinalizationViewModel = new BulkFinalizationViewModel(
@@ -172,6 +164,13 @@ public class InstanceChooserList extends AppListActivity implements AdapterView.
     private void init() {
         setupAdapter();
         getSupportLoaderManager().initLoader(LOADER_ID, null, this);
+    }
+
+    private void applyFilterId(String filterId) {
+        // Pass the filterId to the loader
+        Bundle args = new Bundle();
+        args.putString("FILTER_ID", filterId);
+        getSupportLoaderManager().restartLoader(LOADER_ID, args, this);
     }
 
     /**
@@ -237,10 +236,11 @@ public class InstanceChooserList extends AppListActivity implements AdapterView.
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         showProgressBar();
+        String filterId = args != null ? args.getString("FILTER_ID") : null;
         if (editMode) {
-            return new CursorLoaderFactory(projectsDataService).createEditableInstancesCursorLoader(getFilterText(), getSortingOrder());
+            return new MyCursorLoaderFactory(projectsDataService).createEditableInstancesCursorLoader(getFilterText(), getSortingOrder(),filterId);
         } else {
-            return new CursorLoaderFactory(projectsDataService).createSentInstancesCursorLoader(getFilterText(), getSortingOrder());
+            return new MyCursorLoaderFactory(projectsDataService).createSentInstancesCursorLoader(getFilterText(), getSortingOrder(),filterId);
         }
     }
 
@@ -274,3 +274,4 @@ public class InstanceChooserList extends AppListActivity implements AdapterView.
         return sortingOrder;
     }
 }
+

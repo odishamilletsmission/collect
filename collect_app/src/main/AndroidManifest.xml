@@ -129,6 +129,8 @@ the specific language governing permissions and limitations under the License.
             android:windowSoftInputMode="adjustResize">
         </activity>
 
+        <activity android:name=".wassan.app.CustomInstanceChooserList" />
+
         <activity android:name="org.odk.collect.android.activities.CrashHandlerActivity" />
 
         <activity

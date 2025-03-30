@@ -188,10 +188,12 @@ class MainActivity : LocalizedActivity(), NavigationView.OnNavigationItemSelecte
 
         // Observe the current project
         currentProjectViewModel.currentProject.observe(this) { project ->
-            val (_, name) = project
-            // Set the title directly in the Toolbar
-            toolbar.subtitle = name
+            project?.let {
+                val (_, name) = it
+                toolbar.subtitle = name
+            }
         }
+
 
         val drawerLayout = findViewById<DrawerLayout>(R.id.main)
         val navigationView = findViewById<NavigationView>(R.id.nav_sidebar)
