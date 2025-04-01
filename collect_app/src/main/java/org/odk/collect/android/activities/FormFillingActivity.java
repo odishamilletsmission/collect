@@ -62,8 +62,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.widget.NestedScrollView;
-import androidx.fragment.app.FragmentActivity;
-import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.appbar.AppBarLayout;
@@ -118,7 +116,6 @@ import org.odk.collect.android.formentry.audit.IdentityPromptViewModel;
 import org.odk.collect.android.formentry.backgroundlocation.BackgroundLocationManager;
 import org.odk.collect.android.formentry.backgroundlocation.BackgroundLocationViewModel;
 import org.odk.collect.android.formentry.loading.FormInstanceFileCreator;
-import org.odk.collect.android.formentry.media.AudioHelperFactory;
 import org.odk.collect.android.formentry.repeats.AddRepeatDialog;
 import org.odk.collect.android.formentry.repeats.DeleteRepeatDialogFragment;
 import org.odk.collect.android.formentry.saving.FormSaveViewModel;
@@ -158,7 +155,6 @@ import org.odk.collect.android.utilities.FormsRepositoryProvider;
 import org.odk.collect.android.utilities.InstancesRepositoryProvider;
 import org.odk.collect.android.utilities.MediaUtils;
 import org.odk.collect.android.utilities.SavepointsRepositoryProvider;
-import org.odk.collect.android.utilities.ScreenContext;
 import org.odk.collect.android.utilities.SoftKeyboardController;
 import org.odk.collect.android.widgets.QuestionWidget;
 import org.odk.collect.android.widgets.datetime.DateTimeWidget;
@@ -227,7 +223,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
         FormLoaderListener, AdvanceToNextListener, SwipeHandler.OnSwipeListener,
         SavepointListener, NumberPickerDialog.NumberPickerListener,
         RankingWidgetDialog.RankingListener, SaveFormIndexTask.SaveFormIndexListener,
-        WidgetValueChangedListener, ScreenContext, FormLoadingDialogFragment.FormLoadingDialogFragmentListener,
+        WidgetValueChangedListener, FormLoadingDialogFragment.FormLoadingDialogFragmentListener,
         AudioControllerView.SwipableParent, FormIndexAnimationHandler.Listener,
         SelectMinimalDialog.SelectMinimalDialogListener, CustomDatePickerDialog.DateChangeListener,
         CustomTimePickerDialog.TimeChangeListener {
@@ -351,9 +347,6 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
     LocationClient fusedLocatonClient;
 
     @Inject
-    public AudioHelperFactory audioHelperFactory;
-
-    @Inject
     public FormLoaderTask.FormEntryControllerFactory formEntryControllerFactory;
 
     @Inject
@@ -396,7 +389,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
                 // We want the user to stop recording before changing screens
                 DialogFragmentUtils.showIfNotShowing(RecordingWarningDialogFragment.class, getSupportFragmentManager());
             } else {
-                QuitFormDialog.show(getActivity(), formSaveViewModel, formEntryViewModel, settingsProvider, () -> {
+                QuitFormDialog.show(FormFillingActivity.this, formSaveViewModel, formEntryViewModel, settingsProvider, () -> {
                     saveForm(true, InstancesDaoHelper.isInstanceComplete(getFormController()), null, true);
                 });
             }
@@ -865,7 +858,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
         if (intent == null && requestCode != RequestCodes.DRAW_IMAGE && requestCode != RequestCodes.ANNOTATE_IMAGE
                 && requestCode != RequestCodes.SIGNATURE_CAPTURE && requestCode != RequestCodes.IMAGE_CAPTURE) {
             Timber.d("The intent has a null value for requestCode: %s", requestCode);
-            showLongToast(this, getString(org.odk.collect.strings.R.string.null_intent_value));
+            showLongToast(getString(org.odk.collect.strings.R.string.null_intent_value));
             return;
         }
 
@@ -978,7 +971,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
                             waitingForDataRegistry.cancelWaitingForData();
                         } catch (Exception e) {
                             Timber.e(e);
-                            ToastUtils.showLongToast(this, currentViewIfODKView.getContext().getString(org.odk.collect.strings.R.string.error_attaching_binary_file,
+                            ToastUtils.showLongToast(currentViewIfODKView.getContext().getString(org.odk.collect.strings.R.string.error_attaching_binary_file,
                                     e.getMessage()));
                         }
                         set = true;
@@ -1168,17 +1161,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
                 odkViewLifecycle
         );
 
-        return new ODKView(this, prompts, groups, advancingPage, formSaveViewModel, waitingForDataRegistry, viewModelAudioPlayer, audioRecorder, formEntryViewModel, printerWidgetViewModel, internalRecordingRequester, externalAppRecordingRequester, audioHelperFactory.create(this));
-    }
-
-    @Override
-    public FragmentActivity getActivity() {
-        return this;
-    }
-
-    @Override
-    public LifecycleOwner getViewLifecycle() {
-        return odkViewLifecycle;
+        return new ODKView(this, prompts, groups, advancingPage, formSaveViewModel, waitingForDataRegistry, viewModelAudioPlayer, audioRecorder, formEntryViewModel, printerWidgetViewModel, internalRecordingRequester, externalAppRecordingRequester, odkViewLifecycle);
     }
 
     private void releaseOdkView() {
@@ -1552,7 +1535,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
         // save current answer
         if (current) {
             if (!formEntryViewModel.updateAnswersForScreen(getAnswers(), complete)) {
-                showShortToast(this, org.odk.collect.strings.R.string.data_saved_error);
+                showShortToast(org.odk.collect.strings.R.string.data_saved_error);
                 return false;
             }
         }
@@ -1584,7 +1567,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
                 if (result.getRequest().viewExiting()) {
                     finishAndReturnInstance();
                 } else {
-                    showShortToast(this, org.odk.collect.strings.R.string.data_saved_ok);
+                    showShortToast(org.odk.collect.strings.R.string.data_saved_ok);
                 }
 
                 formSessionRepository.update(sessionId, formSaveViewModel.getInstance());
@@ -1604,7 +1587,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
                     message = getString(org.odk.collect.strings.R.string.data_saved_error);
                 }
 
-                showLongToast(this, message);
+                showLongToast(message);
                 formSaveViewModel.resumeFormEntry();
                 break;
 
@@ -1612,7 +1595,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
                 DialogFragmentUtils.dismissDialog(SaveFormProgressDialogFragment.class, getSupportFragmentManager());
                 DialogFragmentUtils.dismissDialog(ChangesReasonPromptDialogFragment.class, getSupportFragmentManager());
 
-                showLongToast(this, String.format(getString(org.odk.collect.strings.R.string.encryption_error_message),
+                showLongToast(String.format(getString(org.odk.collect.strings.R.string.encryption_error_message),
                         result.getMessage()));
                 finishAndReturnInstance();
                 formSaveViewModel.resumeFormEntry();
@@ -1954,7 +1937,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
             boolean hasUsedSavepoint = task.hasUsedSavepoint();
 
             if (hasUsedSavepoint) {
-                runOnUiThread(() -> showLongToast(this, org.odk.collect.strings.R.string.savepoint_used));
+                runOnUiThread(() -> showLongToast(org.odk.collect.strings.R.string.savepoint_used));
             }
 
             if (formController.getInstanceFile() == null) {
@@ -1992,7 +1975,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
                         formEntryViewModel.refresh();
 
                         if (warningMsg != null) {
-                            showLongToast(this, warningMsg);
+                            showLongToast(warningMsg);
                             Timber.w(warningMsg);
                         }
                     }
@@ -2050,7 +2033,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
             }
         } else {
             Timber.e(new Error("FormController is null"));
-            showLongToast(this, org.odk.collect.strings.R.string.loading_form_failed);
+            showLongToast(org.odk.collect.strings.R.string.loading_form_failed);
             exit();
         }
     }
@@ -2129,14 +2112,14 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
     @Override
     public void onSavePointError(String errorMessage) {
         if (errorMessage != null && errorMessage.trim().length() > 0) {
-            showLongToast(this, getString(org.odk.collect.strings.R.string.save_point_error, errorMessage));
+            showLongToast(getString(org.odk.collect.strings.R.string.save_point_error, errorMessage));
         }
     }
 
     @Override
     public void onSaveFormIndexError(String errorMessage) {
         if (errorMessage != null && errorMessage.trim().length() > 0) {
-            showLongToast(this, getString(org.odk.collect.strings.R.string.save_point_error, errorMessage));
+            showLongToast(getString(org.odk.collect.strings.R.string.save_point_error, errorMessage));
         }
     }
 

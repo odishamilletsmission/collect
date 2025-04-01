@@ -14,9 +14,20 @@ class InMemEntitiesRepository : EntitiesRepository {
         return lists
     }
 
-    override fun getEntities(list: String): List<Entity.Saved> {
-        val entities = entities[list] ?: emptyList()
-        return entities.mapIndexed { index, entity ->
+    override fun getCount(list: String): Int {
+        return query(list).count()
+    }
+
+    override fun addList(list: String) {
+        lists.add(list)
+    }
+
+    override fun delete(list: String, id: String) {
+        entities[list]?.removeIf { it.id == id }
+    }
+
+    override fun query(list: String, query: Query?): List<Entity.Saved> {
+        val entities = (entities[list] ?: emptyList()).mapIndexed { index, entity ->
             Entity.Saved(
                 entity.id,
                 entity.label,
@@ -28,87 +39,28 @@ class InMemEntitiesRepository : EntitiesRepository {
                 entity.branchId
             )
         }
-    }
 
-    override fun getCount(list: String): Int {
-        return getEntities(list).count()
-    }
-
-    override fun addList(list: String) {
-        lists.add(list)
-    }
-
-    override fun delete(id: String) {
-        entities.forEach { (_, list) ->
-            list.removeIf { it.id == id }
+        fun Entity.getFieldValue(column: String): String = when (column) {
+            EntitySchema.ID -> id
+            EntitySchema.LABEL -> label!!
+            EntitySchema.VERSION -> version.toString()
+            else -> properties.find { it.first == column }?.second
+                ?: throw QueryException("No such column: $column")
         }
-    }
-
-    override fun query(list: String, query: Query): List<Entity.Saved> {
-        val entities = getEntities(list)
 
         return when (query) {
-            is Query.Eq -> {
-                entities.filter {
-                    val fieldName: String? = when (query.column) {
-                        EntitySchema.ID -> it.id
-                        EntitySchema.LABEL -> it.label
-                        EntitySchema.VERSION -> it.version.toString()
-                        else -> it.properties.find { propertyName ->
-                            propertyName.first == query.column
-                        }?.second
-                    }
-                    fieldName == query.value
-                }
-            }
-            is Query.NotEq -> {
-                entities.filter {
-                    val fieldName: String? = when (query.column) {
-                        EntitySchema.ID -> it.id
-                        EntitySchema.LABEL -> it.label
-                        EntitySchema.VERSION -> it.version.toString()
-                        else -> it.properties.find { propertyName ->
-                            propertyName.first == query.column
-                        }?.second
-                    }
-                    fieldName != query.value
-                }
-            }
-            is Query.And -> {
-                val queryAResult = query(list, query.queryA)
-                val queryBResult = query(list, query.queryB)
-                queryAResult.intersect(queryBResult.toSet()).toList()
-            }
-            is Query.Or -> {
-                val queryAResult = query(list, query.queryA)
-                val queryBResult = query(list, query.queryB)
-                queryAResult.union(queryBResult.toSet()).toList()
-            }
-        }
-    }
-
-    override fun getById(list: String, id: String): Entity.Saved? {
-        return getEntities(list).firstOrNull { it.id == id }
-    }
-
-    override fun getAllByProperty(
-        list: String,
-        property: String,
-        value: String
-    ): List<Entity.Saved> {
-        return if (listProperties[list]?.contains(property) == true) {
-            getEntities(list).filter { entity ->
-                entity.properties.any { (first, second) -> first == property && second == value }
-            }.toList()
-        } else if (value == "") {
-            getEntities(list)
-        } else {
-            emptyList()
+            is Query.StringEq -> entities.filter { it.getFieldValue(query.column) == query.value }
+            is Query.StringNotEq -> entities.filter { it.getFieldValue(query.column) != query.value }
+            is Query.NumericEq -> entities.filter { it.getFieldValue(query.column).toDoubleOrNull() == query.value }
+            is Query.NumericNotEq -> entities.filter { it.getFieldValue(query.column).toDoubleOrNull() != query.value }
+            is Query.And -> query(list, query.queryA).intersect(query(list, query.queryB)).toList()
+            is Query.Or -> query(list, query.queryA).union(query(list, query.queryB)).toList()
+            null -> entities
         }
     }
 
     override fun getByIndex(list: String, index: Int): Entity.Saved? {
-        return getEntities(list).firstOrNull { it.index == index }
+        return query(list).firstOrNull { it.index == index }
     }
 
     override fun updateListHash(list: String, hash: String) {

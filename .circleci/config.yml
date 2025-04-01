@@ -7,7 +7,7 @@ references:
   android_config: &android_config
     working_directory: ~/work
     docker:
-      - image: cimg/android:2024.11
+      - image: cimg/android:2025.02
     resource_class: medium+
 
 jobs:
@@ -398,4 +398,9 @@ workflows:
       - create_dependency_backup:
           requires:
             - compile
+          filters:
+            tags:
+              only: /^v((20)[0-9]{2})\.\d+\.\d+$/ # matches semvers like v1.2.3
+            branches:
+              ignore: /.*/
 

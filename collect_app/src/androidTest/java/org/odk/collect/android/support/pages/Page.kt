@@ -252,7 +252,12 @@ abstract class Page<T : Page<T>> {
     }
 
     fun clickOnText(text: String): T {
-        Interactions.clickOn(withText(text))
+        Interactions.clickOn(
+            allOf(
+                withText(text),
+                withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)
+            )
+        )
         return this as T
     }
 
@@ -290,11 +295,11 @@ abstract class Page<T : Page<T>> {
         return clickOnTextInDialog(getTranslatedString(text))
     }
 
-    fun <D : Page<D>> clickOnTextInDialog(text: Int, destination: D): D {
+    fun <D : Page<D>> clickOnTextInDialog(text: Int, destination: Page<D>): D {
         return clickOnTextInDialog(getTranslatedString(text), destination)
     }
 
-    fun <D : Page<D>> clickOnTextInDialog(text: String, destination: D): D {
+    fun <D : Page<D>> clickOnTextInDialog(text: String, destination: Page<D>): D {
         clickOnTextInDialog(text)
         return destination.assertOnPage()
     }
@@ -577,6 +582,10 @@ abstract class Page<T : Page<T>> {
     fun assertNoId(id: Int): T {
         onView(withId(id)).check(doesNotExist())
         return this as T
+    }
+
+    fun async(): AsyncPage<T> {
+        return AsyncPage(this as T)
     }
 
     companion object {

@@ -368,6 +368,59 @@ class LocalEntitiesFilterStrategyTest {
     }
 
     @Test
+    fun `works correctly in the optimized way with property = number`() {
+        entitiesRepository.save(
+            "things",
+            Entity.New(
+                "thing1",
+                "Thing1",
+                properties = listOf("age" to "25")
+            )
+        )
+
+        entitiesRepository.save(
+            "things",
+            Entity.New(
+                "thing2",
+                "Thing2",
+                properties = listOf("age" to "30")
+            )
+        )
+
+        val scenario = Scenario.init(
+            "Secondary instance form",
+            html(
+                head(
+                    title("Secondary instance form"),
+                    model(
+                        mainInstance(
+                            t(
+                                "data id=\"create-entity-form\"",
+                                t("question"),
+                            )
+                        ),
+                        t("instance id=\"things\" src=\"jr://file-csv/things.csv\""),
+                        bind("/data/question").type("string")
+                    )
+                ),
+                body(
+                    select1Dynamic(
+                        "/data/question",
+                        "instance('things')/root/item[age=25]",
+                        "name",
+                        "label"
+                    )
+                )
+            ),
+            controllerSupplier
+        )
+
+        val choices = scenario.choicesOf("/data/question").map { it.value }
+        assertThat(choices, containsInAnyOrder("thing1"))
+        assertThat(instanceProvider.fullParsePerformed, equalTo(false))
+    }
+
+    @Test
     fun `replaces partial elements when entity matches property`() {
         entitiesRepository.save(
             "things",
@@ -540,6 +593,166 @@ class LocalEntitiesFilterStrategyTest {
         assertThat(choices, containsInAnyOrder("thing1", "thing3"))
         assertThat(fallthroughFilterStrategy.fellThrough, equalTo(false))
         assertThat(instanceProvider.fullParsePerformed, equalTo(false))
+    }
+
+    @Test
+    fun `works correctly but not in the optimized way with unanswered question = ''`() {
+        entitiesRepository.save("things", Entity.New("thing1", "Thing1"))
+
+        val scenario = Scenario.init(
+            "Secondary instance form",
+            html(
+                head(
+                    title("Secondary instance form"),
+                    model(
+                        mainInstance(
+                            t(
+                                "data id=\"create-entity-form\"",
+                                t("ref_question"),
+                                t("question")
+                            )
+                        ),
+                        t("instance id=\"things\" src=\"jr://file-csv/things.csv\""),
+                        bind("/data/ref_question").type("string"),
+                        bind("/data/question").type("string")
+                    )
+                ),
+                body(
+                    input("/data/ref_question"),
+                    select1Dynamic(
+                        "/data/question",
+                        "instance('things')/root/item[/data/ref_question='']",
+                        "name",
+                        "label"
+                    )
+                )
+            ),
+            controllerSupplier
+        )
+
+        val choices = scenario.choicesOf("/data/question").map { it.value }
+        assertThat(choices, containsInAnyOrder("thing1"))
+
+        assertThat(fallthroughFilterStrategy.fellThrough, equalTo(true))
+    }
+
+    @Test
+    fun `works correctly but not in the optimized way with answered question = value`() {
+        entitiesRepository.save("things", Entity.New("thing1", "Thing1"))
+
+        val scenario = Scenario.init(
+            "Secondary instance form",
+            html(
+                head(
+                    title("Secondary instance form"),
+                    model(
+                        mainInstance(
+                            t(
+                                "data id=\"create-entity-form\"",
+                                t("ref_question"),
+                                t("question")
+                            )
+                        ),
+                        t("instance id=\"things\" src=\"jr://file-csv/things.csv\""),
+                        bind("/data/ref_question").type("string"),
+                        bind("/data/question").type("string")
+                    )
+                ),
+                body(
+                    input("/data/ref_question"),
+                    select1Dynamic(
+                        "/data/question",
+                        "instance('things')/root/item[/data/ref_question='']",
+                        "name",
+                        "label"
+                    )
+                )
+            ),
+            controllerSupplier
+        )
+        scenario.next()
+        scenario.answer("blah")
+
+        val choices = scenario.choicesOf("/data/question").map { it.value }
+        assertThat(choices.isEmpty(), equalTo(true))
+
+        assertThat(fallthroughFilterStrategy.fellThrough, equalTo(true))
+    }
+
+    @Test
+    fun `works correctly but not in the optimized way with non existing property = ''`() {
+        entitiesRepository.save("things", Entity.New("thing1", "Thing1"))
+
+        val scenario = Scenario.init(
+            "Secondary instance form",
+            html(
+                head(
+                    title("Secondary instance form"),
+                    model(
+                        mainInstance(
+                            t(
+                                "data id=\"create-entity-form\"",
+                                t("question")
+                            )
+                        ),
+                        t("instance id=\"things\" src=\"jr://file-csv/things.csv\""),
+                        bind("/data/question").type("string")
+                    )
+                ),
+                body(
+                    select1Dynamic(
+                        "/data/question",
+                        "instance('things')/root/item[not_existing_property='']",
+                        "name",
+                        "label"
+                    )
+                )
+            ),
+            controllerSupplier
+        )
+
+        val choices = scenario.choicesOf("/data/question").map { it.value }
+        assertThat(choices, containsInAnyOrder("thing1"))
+
+        assertThat(fallthroughFilterStrategy.fellThrough, equalTo(true))
+    }
+
+    @Test
+    fun `works correctly but not in the optimized way with non existing property = value`() {
+        entitiesRepository.save("things", Entity.New("thing1", "Thing1"))
+
+        val scenario = Scenario.init(
+            "Secondary instance form",
+            html(
+                head(
+                    title("Secondary instance form"),
+                    model(
+                        mainInstance(
+                            t(
+                                "data id=\"create-entity-form\"",
+                                t("question")
+                            )
+                        ),
+                        t("instance id=\"things\" src=\"jr://file-csv/things.csv\""),
+                        bind("/data/question").type("string")
+                    )
+                ),
+                body(
+                    select1Dynamic(
+                        "/data/question",
+                        "instance('things')/root/item[not_existing_property='value']",
+                        "name",
+                        "label"
+                    )
+                )
+            ),
+            controllerSupplier
+        )
+
+        val choices = scenario.choicesOf("/data/question").map { it.value }
+        assertThat(choices.isEmpty(), equalTo(true))
+
+        assertThat(fallthroughFilterStrategy.fellThrough, equalTo(true))
     }
 }
 

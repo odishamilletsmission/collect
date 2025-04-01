@@ -48,7 +48,6 @@ import org.odk.collect.android.fragments.dialogs.FormsDownloadResultDialog;
 import org.odk.collect.android.injection.DaggerUtils;
 import org.odk.collect.android.listeners.DownloadFormsTaskListener;
 import org.odk.collect.android.listeners.FormListDownloaderListener;
-import org.odk.collect.android.openrosa.HttpCredentialsInterface;
 import org.odk.collect.android.projects.ProjectsDataService;
 import org.odk.collect.android.tasks.DownloadFormListTask;
 import org.odk.collect.android.tasks.DownloadFormsTask;
@@ -57,10 +56,11 @@ import org.odk.collect.android.utilities.AuthDialogUtility;
 import org.odk.collect.android.utilities.DialogUtils;
 import org.odk.collect.android.utilities.WebCredentialsUtils;
 import org.odk.collect.android.views.DayNightProgressDialog;
-import org.odk.collect.async.network.NetworkStateProvider;
 import org.odk.collect.androidshared.ui.DialogFragmentUtils;
 import org.odk.collect.androidshared.ui.ToastUtils;
+import org.odk.collect.async.network.NetworkStateProvider;
 import org.odk.collect.forms.FormSourceException;
+import org.odk.collect.openrosa.http.HttpCredentialsInterface;
 
 import java.io.Serializable;
 import java.net.URI;
@@ -273,7 +273,7 @@ public class FormDownloadListActivity extends FormListActivity implements FormLi
      */
     private void downloadFormList() {
         if (!connectivityProvider.isDeviceOnline()) {
-            ToastUtils.showShortToast(this, org.odk.collect.strings.R.string.no_connection);
+            ToastUtils.showShortToast(org.odk.collect.strings.R.string.no_connection);
 
             if (viewModel.isDownloadOnlyMode()) {
                 setReturnResult(false, getString(org.odk.collect.strings.R.string.no_connection), viewModel.getFormResults());
@@ -408,7 +408,7 @@ public class FormDownloadListActivity extends FormListActivity implements FormLi
 
             downloadFormsTask.execute(filesToDownload);
         } else {
-            ToastUtils.showShortToast(this, org.odk.collect.strings.R.string.noselect_error);
+            ToastUtils.showShortToast(org.odk.collect.strings.R.string.noselect_error);
         }
     }
 

@@ -266,6 +266,8 @@ dependencies {
     implementation project(':lists')
     implementation project(':web-page')
     implementation project(':db')
+    implementation project(':open-rosa')
+    implementation project(':mobile-device-management')
 
     if (getSecrets().getProperty('MAPBOX_DOWNLOADS_TOKEN', '') != '') {
         implementation project(':mapbox')
@@ -289,10 +291,6 @@ dependencies {
     implementation libs.firebaseAnalytics
     implementation libs.firebaseCrashlytics
 
-    implementation libs.squareupOkhttp
-    implementation libs.squareupOkhttpTls
-    implementation libs.burgstallerOkhttpDigest
-    
     implementation libs.persianJodaTime
     implementation libs.myanmarCalendar
     implementation libs.bikramSambat
@@ -364,8 +362,6 @@ dependencies {
 
     testImplementation libs.androidxTestExtJunit
     testImplementation libs.androidxArchCoreTesting
-    testImplementation libs.okhttp3Mockwebserver
-    testImplementation libs.squareupOkhttpTls
 
     testImplementation libs.hamcrest
 
@@ -386,9 +382,9 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     }
 
-    androidTestImplementation libs.okhttp3Mockwebserver
     androidTestImplementation libs.androidxWorkTesting
     androidTestImplementation libs.uiautomator
+    androidTestImplementation libs.mockitoKotlin
 
     debugImplementation project(':fragments-test')
     debugImplementation(project(':test-shared',)) {

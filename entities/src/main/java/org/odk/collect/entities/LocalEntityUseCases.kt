@@ -5,9 +5,10 @@ import org.javarosa.core.model.instance.SecondaryInstanceCSVParserBuilder
 import org.odk.collect.entities.javarosa.finalization.EntitiesExtra
 import org.odk.collect.entities.javarosa.parse.EntitySchema
 import org.odk.collect.entities.javarosa.spec.EntityAction
+import org.odk.collect.entities.server.EntitySource
 import org.odk.collect.entities.storage.EntitiesRepository
 import org.odk.collect.entities.storage.Entity
-import org.odk.collect.shared.strings.Md5.getMd5Hash
+import org.odk.collect.shared.Query
 import java.io.File
 import java.util.UUID
 
@@ -38,7 +39,10 @@ object LocalEntityUseCases {
                     }
 
                     EntityAction.UPDATE -> {
-                        val existing = entitiesRepository.getById(formEntity.dataset, formEntity.id)
+                        val existing = entitiesRepository.query(
+                            formEntity.dataset,
+                            Query.StringEq(EntitySchema.ID, formEntity.id)
+                        ).firstOrNull()
                         if (existing != null) {
                             entitiesRepository.save(
                                 formEntity.dataset,
@@ -58,11 +62,14 @@ object LocalEntityUseCases {
     fun updateLocalEntitiesFromServer(
         list: String,
         serverList: File,
-        entitiesRepository: EntitiesRepository
+        entitiesRepository: EntitiesRepository,
+        entitySource: EntitySource,
+        serverListHash: String,
+        integrityUrl: String?
     ) {
-        val listHash = getListHash(serverList)
-        val existingListVersion = entitiesRepository.getListHash(list)
-        if (listHash == existingListVersion) {
+        val newListHash = "server:$serverListHash"
+        val existingListHash = entitiesRepository.getListHash(list)
+        if (newListHash == existingListHash) {
             return
         }
 
@@ -74,7 +81,7 @@ object LocalEntityUseCases {
             return
         }
 
-        val localEntities = entitiesRepository.getEntities(list)
+        val localEntities = entitiesRepository.query(list)
 
         val missingFromServer = localEntities.associateBy { it.id }.toMutableMap()
         val newAndUpdated = ArrayList<Entity>()
@@ -108,18 +115,38 @@ object LocalEntityUseCases {
             }
         }
 
-        missingFromServer.values.forEach {
-            if (it.state == Entity.State.ONLINE) {
-                entitiesRepository.delete(it.id)
-            }
-        }
-
+        handleMissingEntities(
+            list,
+            missingFromServer.values,
+            entitiesRepository,
+            entitySource,
+            integrityUrl
+        )
         entitiesRepository.save(list, *newAndUpdated.toTypedArray())
-        entitiesRepository.updateListHash(list, listHash)
+        entitiesRepository.updateListHash(list, newListHash)
     }
 
-    private fun getListHash(serverList: File): String {
-        return "md5:${serverList.getMd5Hash()!!}"
+    private fun handleMissingEntities(
+        list: String,
+        missingFromServer: Collection<Entity.Saved>,
+        entitiesRepository: EntitiesRepository,
+        entitySource: EntitySource,
+        integrityUrl: String?
+    ) {
+        val missingOnline = missingFromServer.filter { it.state == Entity.State.ONLINE }
+        val missingOffline = missingFromServer.filter { it.state == Entity.State.OFFLINE }
+
+        missingOnline.forEach {
+            entitiesRepository.delete(list, it.id)
+        }
+
+        if (integrityUrl != null && missingOffline.isNotEmpty()) {
+            entitySource.fetchDeletedStates(integrityUrl, missingOffline.map { it.id }).forEach {
+                if (it.second) {
+                    entitiesRepository.delete(list, it.first)
+                }
+            }
+        }
     }
 
     private fun parseEntityFromRecord(record: CSVRecord): ServerEntity? {

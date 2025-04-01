@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteException
 import android.provider.BaseColumns._ID
 import org.odk.collect.db.sqlite.CursorExt.first
 import org.odk.collect.db.sqlite.CursorExt.foldAndClose
@@ -12,9 +13,10 @@ import org.odk.collect.db.sqlite.CursorExt.getString
 import org.odk.collect.db.sqlite.CursorExt.getStringOrNull
 import org.odk.collect.db.sqlite.CursorExt.rowToMap
 import org.odk.collect.db.sqlite.DatabaseMigrator
-import org.odk.collect.db.sqlite.SQLiteColumns.ROW_ID
+import org.odk.collect.db.sqlite.RowNumbers.invalidateRowNumbers
+import org.odk.collect.db.sqlite.RowNumbers.rawQueryWithRowNumber
+import org.odk.collect.db.sqlite.SQLiteColumns.ROW_NUMBER
 import org.odk.collect.db.sqlite.SQLiteDatabaseExt.delete
-import org.odk.collect.db.sqlite.SQLiteDatabaseExt.doesColumnExist
 import org.odk.collect.db.sqlite.SQLiteDatabaseExt.getColumnNames
 import org.odk.collect.db.sqlite.SQLiteDatabaseExt.query
 import org.odk.collect.db.sqlite.SynchronizedDatabaseConnection
@@ -22,6 +24,7 @@ import org.odk.collect.db.sqlite.toSql
 import org.odk.collect.entities.javarosa.parse.EntitySchema
 import org.odk.collect.entities.storage.EntitiesRepository
 import org.odk.collect.entities.storage.Entity
+import org.odk.collect.entities.storage.QueryException
 import org.odk.collect.shared.Query
 import org.odk.collect.shared.mapColumns
 
@@ -122,7 +125,7 @@ class DatabaseEntitiesRepository(context: Context, dbPath: String) : EntitiesRep
             }
         }
 
-        updateRowIdTables()
+        invalidateRowNumbers()
     }
 
     override fun getLists(): Set<String> {
@@ -154,14 +157,6 @@ class DatabaseEntitiesRepository(context: Context, dbPath: String) : EntitiesRep
         }
     }
 
-    override fun getEntities(list: String): List<Entity.Saved> {
-        if (!listExists(list)) {
-            return emptyList()
-        }
-
-        return queryWithAttachedRowId(list, null)
-    }
-
     override fun getCount(list: String): Int {
         if (!listExists(list)) {
             return 0
@@ -183,30 +178,24 @@ class DatabaseEntitiesRepository(context: Context, dbPath: String) : EntitiesRep
     override fun addList(list: String) {
         if (!listExists(list)) {
             createList(list)
-            updateRowIdTables()
+            invalidateRowNumbers()
         }
     }
 
-    override fun delete(id: String) {
+    override fun delete(list: String, id: String) {
         databaseConnection.withConnection {
-            getLists().forEach {
-                writableDatabase.delete(
-                    quote(it),
-                    "${EntitiesTable.COLUMN_ID} = ?",
-                    arrayOf(id)
-                )
-            }
+            writableDatabase.delete(quote(list), "${EntitiesTable.COLUMN_ID} = ?", arrayOf(id))
         }
 
-        updateRowIdTables()
+        invalidateRowNumbers()
     }
 
-    override fun query(list: String, query: Query): List<Entity.Saved> {
+    override fun query(list: String, query: Query?): List<Entity.Saved> {
         if (!listExists(list)) {
             return emptyList()
         }
 
-        return queryWithAttachedRowId(list, query.mapColumns { columnName ->
+        return queryWithAttachedRowNumber(list, query?.mapColumns { columnName ->
             when (columnName) {
                 EntitySchema.ID -> EntitiesTable.COLUMN_ID
                 EntitySchema.LABEL -> EntitiesTable.COLUMN_LABEL
@@ -216,106 +205,35 @@ class DatabaseEntitiesRepository(context: Context, dbPath: String) : EntitiesRep
         })
     }
 
-    override fun getById(list: String, id: String): Entity.Saved? {
-        if (!listExists(list)) {
-            return null
-        }
-
-        return queryWithAttachedRowId(list, Query.Eq(EntitiesTable.COLUMN_ID, id)).firstOrNull()
-    }
-
-    override fun getAllByProperty(
-        list: String,
-        property: String,
-        value: String
-    ): List<Entity.Saved> {
-        if (!listExists(list)) {
-            return emptyList()
-        }
-
-        val propertyExists = databaseConnection.withConnection {
-            readableDatabase.doesColumnExist(quote(list), EntitiesTable.getPropertyColumn(property))
-        }
-
-        return if (propertyExists) {
-            queryWithAttachedRowId(
-                list,
-                Query.Eq(EntitiesTable.getPropertyColumn(property), value)
-            )
-        } else if (value == "") {
-            queryWithAttachedRowId(list, null)
-        } else {
-            emptyList()
-        }
-    }
-
     override fun getByIndex(list: String, index: Int): Entity.Saved? {
         if (!listExists(list)) {
             return null
         }
 
-        return queryWithAttachedRowId(list, Query.Eq("i.$ROW_ID", (index + 1).toString())).firstOrNull()
+        val query = Query.StringEq(ROW_NUMBER, (index + 1).toString())
+        return queryWithAttachedRowNumber(list, query).firstOrNull()
     }
 
-    private fun queryWithAttachedRowId(list: String, query: Query?): List<Entity.Saved> {
-        return if (query == null) {
-            databaseConnection.withConnection {
-                readableDatabase
-                    .rawQuery(
-                        """
-                        SELECT *, i.$ROW_ID
-                        FROM "$list" e, "${getRowIdTableName(list)}" i
-                        WHERE e._id = i._id
-                        ORDER BY i.$ROW_ID
-                        """.trimIndent(),
-                        null
-                    )
-            }
-        } else {
-            databaseConnection.withConnection {
+    private fun queryWithAttachedRowNumber(list: String, query: Query?): List<Entity.Saved> {
+        try {
+            return if (query == null) {
+                databaseConnection.rawQueryWithRowNumber(list)
+            } else {
                 val sqlQuery = query.toSql()
-                readableDatabase
-                    .rawQuery(
-                        """
-                        SELECT *, i.$ROW_ID
-                        FROM "$list" e, "${getRowIdTableName(list)}" i
-                        WHERE e._id = i._id AND ${sqlQuery.selection}
-                        ORDER BY i.$ROW_ID
-                        """.trimIndent(),
-                        sqlQuery.selectionArgs
-                    )
+                databaseConnection.rawQueryWithRowNumber(list, sqlQuery.selection, sqlQuery.selectionArgs)
+            }.foldAndClose {
+                mapCursorRowToEntity(it, it.getInt(ROW_NUMBER))
             }
-        }.foldAndClose {
-            mapCursorRowToEntity(it, it.getInt(ROW_ID))
+        } catch (e: SQLiteException) {
+            throw QueryException(e.message)
         }
     }
 
-    /**
-     * Dropping and recreating this table on every change allows to maintain a sequential
-     * "positions" for each entity that can be used as [Entity.Saved.index]. This method appears
-     * to be faster than using a nested query to generate these at query time (calculating how many
-     * _ids are higher than each entity _id). This might be replaceable with SQLite's `row_number()`
-     * function, but that's not available in all the supported versions of Android.
-     */
-    private fun updateRowIdTables() {
-        databaseConnection.resetTransaction {
-            getLists().forEach {
-                execSQL(
-                    """
-                    DROP TABLE IF EXISTS "${getRowIdTableName(it)}";
-                    """.trimIndent()
-                )
-
-                execSQL(
-                    """
-                    CREATE TABLE "${getRowIdTableName(it)}" AS SELECT _id FROM "$it" ORDER BY _id;
-                    """.trimIndent()
-                )
-            }
+    private fun invalidateRowNumbers() {
+        getLists().forEach {
+            databaseConnection.invalidateRowNumbers(it)
         }
     }
-
-    private fun getRowIdTableName(it: String) = "${it}_row_numbers"
 
     private fun listExists(list: String): Boolean {
         return databaseConnection.withConnection {

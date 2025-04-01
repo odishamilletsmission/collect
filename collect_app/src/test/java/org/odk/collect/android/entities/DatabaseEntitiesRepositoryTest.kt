@@ -30,10 +30,10 @@ class DatabaseEntitiesRepositoryTest : EntitiesRepositoryTest() {
         )
 
         repository.save("things", entity)
-        val savedEntity = query("things", null)[0]
+        val savedEntity = repository.query("things")[0]
         assertThat(savedEntity, sameEntityAs(entity))
 
         repository.save("things", savedEntity)
-        assertThat(query("things", null)[0], sameEntityAs(savedEntity))
+        assertThat(repository.query("things")[0], sameEntityAs(savedEntity))
     }
 }

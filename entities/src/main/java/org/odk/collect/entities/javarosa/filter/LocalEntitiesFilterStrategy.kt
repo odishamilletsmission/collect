@@ -11,6 +11,7 @@ import org.javarosa.xpath.expr.XPathExpression
 import org.odk.collect.entities.javarosa.intance.LocalEntitiesInstanceAdapter
 import org.odk.collect.entities.javarosa.intance.LocalEntitiesInstanceProvider
 import org.odk.collect.entities.storage.EntitiesRepository
+import org.odk.collect.entities.storage.QueryException
 import org.odk.collect.shared.Query
 import java.util.function.Supplier
 
@@ -41,7 +42,11 @@ class LocalEntitiesFilterStrategy(entitiesRepository: EntitiesRepository) :
         val query = xPathExpressionToQuery(predicate, sourceInstance, evaluationContext)
 
         return if (query != null) {
-            queryToTreeReferences(query, sourceInstance)
+            try {
+                queryToTreeReferences(query, sourceInstance)
+            } catch (e: QueryException) {
+                next.get()
+            }
         } else {
             next.get()
         }
@@ -87,12 +92,20 @@ class LocalEntitiesFilterStrategy(entitiesRepository: EntitiesRepository) :
 
         return if (candidate != null) {
             val child = candidate.nodeSide.steps[0].name.name
-            val value = candidate.evalContextSide(sourceInstance, evaluationContext) as String
+            val value = candidate.evalContextSide(sourceInstance, evaluationContext)
 
             if (predicate.isEqual) {
-                Query.Eq(child, value)
+                if (value is Double) {
+                    Query.NumericEq(child, value)
+                } else {
+                    Query.StringEq(child, value.toString())
+                }
             } else {
-                Query.NotEq(child, value)
+                if (value is Double) {
+                    Query.NumericNotEq(child, value)
+                } else {
+                    Query.StringNotEq(child, value.toString())
+                }
             }
         } else {
             null
