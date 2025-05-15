@@ -2,7 +2,7 @@ package org.odk.collect.android.formentry
 
 import org.apache.commons.io.FileUtils.readFileToByteArray
 import org.javarosa.core.model.FormDef
-import org.javarosa.core.model.instance.InstanceInitializationFactory
+import org.javarosa.core.model.FormInitializationMode
 import org.javarosa.core.model.instance.TreeReference
 import org.javarosa.core.model.instance.utils.DefaultAnswerResolver
 import org.javarosa.core.reference.ReferenceManager
@@ -10,6 +10,7 @@ import org.javarosa.form.api.FormEntryController
 import org.javarosa.xform.parse.XFormParser
 import org.javarosa.xform.util.XFormUtils
 import org.odk.collect.android.dynamicpreload.ExternalAnswerResolver
+import org.odk.collect.android.instancemanagement.isEdit
 import org.odk.collect.android.javarosawrapper.FailedValidationResult
 import org.odk.collect.android.javarosawrapper.FormController
 import org.odk.collect.android.javarosawrapper.JavaRosaFormController
@@ -71,8 +72,7 @@ object FormEntryUseCases {
         formEntryController: FormEntryController,
         instanceFile: File
     ): FormController {
-        val instanceInit = InstanceInitializationFactory()
-        formEntryController.model.form.initialize(true, instanceInit)
+        formEntryController.model.form.initialize(FormInitializationMode.NEW_FORM)
 
         return JavaRosaFormController(
             File(form.formMediaPath),
@@ -87,15 +87,13 @@ object FormEntryUseCases {
         instance: Instance,
         formEntryController: FormEntryController
     ): FormController? {
-        val instanceInit = InstanceInitializationFactory()
-
         val instanceFile = File(instance.instanceFilePath)
         if (!instanceFile.exists()) {
             return null
         }
 
         importInstance(instanceFile, formEntryController)
-        formEntryController.model.form.initialize(false, instanceInit)
+        formEntryController.model.form.initialize(FormInitializationMode.DRAFT_FORM_EDIT)
 
         return JavaRosaFormController(
             File(form.formMediaPath),
@@ -155,11 +153,14 @@ object FormEntryUseCases {
         entitiesRepository: EntitiesRepository,
     ): Instance? {
         formController.finalizeForm()
+
         val formEntities = formController.getEntities()
-        LocalEntityUseCases.updateLocalEntitiesFromForm(
-            formEntities,
-            entitiesRepository
-        )
+        if (!instance.isEdit()) {
+            LocalEntityUseCases.updateLocalEntitiesFromForm(
+                formEntities,
+                entitiesRepository
+            )
+        }
 
         val instanceName = formController.getSubmissionMetadata()?.instanceName
         return instancesRepository.save(
@@ -172,17 +173,18 @@ object FormEntryUseCases {
         )
     }
 
+    @JvmStatic
+    fun saveInstanceToDisk(formController: FormController) {
+        val payload = formController.getSubmissionXml()
+        FileUtils.write(formController.getInstanceFile(), payload!!.payloadBytes)
+    }
+
     private fun getInstanceFromFormController(
         formController: FormController,
         instancesRepository: InstancesRepository
     ): Instance? {
         val instancePath = formController.getInstanceFile()!!.absolutePath
         return instancesRepository.getOneByPath(instancePath)
-    }
-
-    private fun saveInstanceToDisk(formController: FormController) {
-        val payload = formController.getSubmissionXml()
-        FileUtils.write(formController.getInstanceFile(), payload!!.payloadBytes)
     }
 
     private fun createFormDefFromCacheOrXml(xForm: File, formDefCache: FormDefCache): FormDef? {

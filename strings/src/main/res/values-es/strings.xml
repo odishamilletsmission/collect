@@ -113,9 +113,6 @@
   <string name="too_complex_form">Este formulario es muy complejo para este dispositivo. Intente simplificar las expresiones o busque ayuda en el Foro.</string>
   <string name="survey_internal_error">Error interno: Ha fallado la entrada de datos.</string>
   <string name="save_enter_data_description">Esta al final de \"%s\".</string>
-  <string name="form_edits_warning_title">Los formularios finalizados no pueden ser editados.</string>
-  <string name="form_edits_warning_title_auto_send_enabled">Los formularios enviados no pueden ser editados.</string>
-  <string name="form_edits_warning_message">Si necesita hacer cambios, \"Guardar como borrador\" hasta que esté listo para enviar.</string>
   <string name="form_edits_warning_learn_more">Aprende más</string>
   <string name="save_as_draft">Guardar como borrador</string>
   <string name="finalize">Finalizar</string>
@@ -444,7 +441,6 @@
   <string name="delete_layer_confirmation_message">¿Está seguro de que desea eliminar la capa sin conexión %1$s ?</string>
   <string name="record_geopoint">Registrando un punto</string>
   <string name="location_accuracy">Precisión: %1$s m</string>
-  <string name="location_provider">Proveedor de Ubicación: %s</string>
   <string name="provider_disabled_error">¡Los proveedores de ubicación están deshabilitados!</string>
   <string name="gps_result">Latitud: %1$s\nLongitud: %2$s\nAltitud: %3$sm\nPrecisión: %4$sm</string>
   <string name="google_play_services_not_available">Este formulario quiere rastrear su ubicación, pero los servicios de Google Play no están disponibles.</string>
@@ -515,10 +511,6 @@
     <item quantity="many">%d metros</item>
     <item quantity="other">%d metros</item>
   </plurals>
-  <string name="location_status_searching">Buscando ubicación, espere …</string>
-  <string name="location_status_accuracy">Precisión de ubicación: %.2f m</string>
-  <string name="location_status_acceptable">Precisión de ubicación: %.2f m (aceptable)</string>
-  <string name="location_status_unacceptable">Precisión de ubicación: %.2f m (inaceptable)</string>
   <string name="collection_status_paused">Puntos ingresados: %d</string>
   <string name="collection_status_placement">Puntos ingresados: %d (toque para ubicar puntos)</string>
   <string name="collection_status_manual">Puntos ingresados: %d (registro manual)</string>

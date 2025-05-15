@@ -102,6 +102,7 @@ import org.odk.collect.android.formentry.FormError;
 import org.odk.collect.android.formentry.FormIndexAnimationHandler;
 import org.odk.collect.android.formentry.FormIndexAnimationHandler.Direction;
 import org.odk.collect.android.formentry.FormLoadingDialogFragment;
+import org.odk.collect.android.formentry.FormOpeningMode;
 import org.odk.collect.android.formentry.FormSessionRepository;
 import org.odk.collect.android.formentry.ODKView;
 import org.odk.collect.android.formentry.PrinterWidgetViewModel;
@@ -115,7 +116,6 @@ import org.odk.collect.android.formentry.audit.IdentifyUserPromptDialogFragment;
 import org.odk.collect.android.formentry.audit.IdentityPromptViewModel;
 import org.odk.collect.android.formentry.backgroundlocation.BackgroundLocationManager;
 import org.odk.collect.android.formentry.backgroundlocation.BackgroundLocationViewModel;
-import org.odk.collect.android.formentry.loading.FormInstanceFileCreator;
 import org.odk.collect.android.formentry.repeats.AddRepeatDialog;
 import org.odk.collect.android.formentry.repeats.DeleteRepeatDialogFragment;
 import org.odk.collect.android.formentry.saving.FormSaveViewModel;
@@ -128,7 +128,9 @@ import org.odk.collect.android.fragments.dialogs.LocationProvidersDisabledDialog
 import org.odk.collect.android.fragments.dialogs.NumberPickerDialog;
 import org.odk.collect.android.fragments.dialogs.RankingWidgetDialog;
 import org.odk.collect.android.fragments.dialogs.SelectMinimalDialog;
+import org.odk.collect.android.instancemanagement.InstanceExtKt;
 import org.odk.collect.android.instancemanagement.InstancesDataService;
+import org.odk.collect.android.instancemanagement.LocalInstancesUseCases;
 import org.odk.collect.android.instancemanagement.autosend.AutoSendSettingsProvider;
 import org.odk.collect.android.javarosawrapper.FailedValidationResult;
 import org.odk.collect.android.javarosawrapper.FormController;
@@ -146,7 +148,6 @@ import org.odk.collect.android.storage.StoragePathProvider;
 import org.odk.collect.android.storage.StorageSubdirectory;
 import org.odk.collect.android.tasks.FormLoaderTask;
 import org.odk.collect.android.tasks.SaveFormIndexTask;
-import org.odk.collect.android.utilities.ApplicationConstants;
 import org.odk.collect.android.utilities.ChangeLockProvider;
 import org.odk.collect.android.utilities.ContentUriHelper;
 import org.odk.collect.android.utilities.ControllableLifecyleOwner;
@@ -411,7 +412,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
         }
 
         viewModelFactory = new FormEntryViewModelFactory(this,
-                getIntent().getStringExtra(ApplicationConstants.BundleKeys.FORM_MODE),
+                getIntent().getStringExtra(FormOpeningMode.FORM_MODE_KEY),
                 sessionId,
                 scheduler,
                 formSessionRepository,
@@ -732,7 +733,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
             uriMimeType = getContentResolver().getType(uri);
         }
 
-        formLoaderTask = new FormLoaderTask(uri, uriMimeType, startingXPath, waitingXPath, formEntryControllerFactory, scheduler, savepointsRepositoryProvider.create());
+        formLoaderTask = new FormLoaderTask(uri, uriMimeType, startingXPath, waitingXPath, formEntryControllerFactory, scheduler, savepointsRepositoryProvider.create(), FormOpeningMode.EDIT_FINALIZED.equalsIgnoreCase(intent.getStringExtra(FormOpeningMode.FORM_MODE_KEY)));
         formLoaderTask.setFormLoaderListener(this);
         showIfNotShowing(FormLoadingDialogFragment.class, getSupportFragmentManager());
         formLoaderTask.execute();
@@ -1178,6 +1179,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
      * a button for saving and exiting.
      */
     private SwipeHandler.View createViewForFormEnd(FormController formController) {
+        String userVisibleInstanceName = null;
         if (formController.getSubmissionMetadata().instanceName != null) {
             saveName = formController.getSubmissionMetadata().instanceName;
         } else {
@@ -1194,6 +1196,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
                 Instance instance = new InstancesRepositoryProvider(Collect.getInstance()).create().get(ContentUriHelper.getIdFromUri(instanceUri));
                 if (instance != null) {
                     saveName = instance.getDisplayName();
+                    userVisibleInstanceName = InstanceExtKt.userVisibleInstanceName(instance, getResources());
                 }
             }
 
@@ -1208,7 +1211,8 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
 
         return new FormEndView(
                 this,
-                saveName,
+                userVisibleInstanceName != null ? userVisibleInstanceName : saveName,
+                formEntryViewModel.isFormEditableAfterFinalization(),
                 formEndViewModel,
                 markAsFinalized -> saveForm(true, markAsFinalized, saveName, false)
         );
@@ -1903,7 +1907,6 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
         final FormController formController = task.getFormController();
         Instance instance = task.getInstance();
         Form form = task.getForm();
-        String formPath = form.getFormFilePath();
 
         if (formController != null) {
             formLoaderTask.setFormLoaderListener(null);
@@ -1941,12 +1944,10 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
             }
 
             if (formController.getInstanceFile() == null) {
-                FormInstanceFileCreator formInstanceFileCreator = new FormInstanceFileCreator(
-                        storagePathProvider,
-                        System::currentTimeMillis
+                File instanceFile = LocalInstancesUseCases.createInstanceFile(
+                        form.getDisplayName(),
+                        storagePathProvider.getOdkDirPath(StorageSubdirectory.INSTANCES)
                 );
-
-                File instanceFile = formInstanceFileCreator.createInstanceFile(formPath);
                 if (instanceFile != null) {
                     formController.setInstanceFile(instanceFile);
                 } else {
@@ -1984,8 +1985,8 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
                 Intent reqIntent = getIntent();
 
                 // we've just loaded a saved form, so start in the hierarchy view
-                String formMode = reqIntent.getStringExtra(ApplicationConstants.BundleKeys.FORM_MODE);
-                if (formMode == null || ApplicationConstants.FormModes.EDIT_SAVED.equalsIgnoreCase(formMode)) {
+                String formMode = reqIntent.getStringExtra(FormOpeningMode.FORM_MODE_KEY);
+                if (FormOpeningMode.isEditableMode(formMode)) {
                     identityPromptViewModel.formLoaded(formController);
                     identityPromptViewModel.requiresIdentityToContinue().observe(this, requiresIdentity -> {
                         if (!requiresIdentity) {
@@ -2021,7 +2022,7 @@ public class FormFillingActivity extends LocalizedActivity implements AnimationL
                     });
                 } else {
                     formControllerAvailable(formController, form, instance);
-                    if (ApplicationConstants.FormModes.VIEW_SENT.equalsIgnoreCase(formMode)) {
+                    if (FormOpeningMode.VIEW_SENT.equalsIgnoreCase(formMode)) {
                         Intent intent = new Intent(this, FormHierarchyFragmentHostActivity.class);
                         intent.putExtra(FormHierarchyFragmentHostActivity.EXTRA_SESSION_ID, sessionId);
                         intent.putExtra(FormHierarchyFragmentHostActivity.EXTRA_VIEW_ONLY, true);

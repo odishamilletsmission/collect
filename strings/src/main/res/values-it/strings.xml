@@ -113,9 +113,6 @@
   <string name="too_complex_form">Questo modulo è troppo complesso per questo dispositivo. Prova a semplificare le espressioni o chiedi aiuto sul forum. </string>
   <string name="survey_internal_error">Errore interno: invio suggerimento fallito.</string>
   <string name="save_enter_data_description">Ti trovi alla fine di \"%s\".</string>
-  <string name="form_edits_warning_title">I moduli finalizzati non possono essere modificati.</string>
-  <string name="form_edits_warning_title_auto_send_enabled">I moduli inviati non possono essere modificati.</string>
-  <string name="form_edits_warning_message">Se devi apportare modifiche al modulo, \"Salva come bozza\" finché non sei pronto per l\'invio.</string>
   <string name="form_edits_warning_learn_more">Saperne di più</string>
   <string name="save_as_draft">Salva come bozza</string>
   <string name="finalize">Finalizzare</string>
@@ -444,7 +441,6 @@
   <string name="delete_layer_confirmation_message">Sei sicuro di voler eliminare il %1$s livello non in linea?</string>
   <string name="record_geopoint">Memorizza un punto</string>
   <string name="location_accuracy">Precisione: %1$s m</string>
-  <string name="location_provider">Fornitore di posizione: %s</string>
   <string name="provider_disabled_error">Attenzione, i Sistemi di Posizionamento sono disabilitati!</string>
   <string name="gps_result">Latitudine: %1$s\nLongitudine: %2$s\nAltitudine: %3$sm\nPrecisione: %4$sm</string>
   <string name="google_play_services_not_available">Questo formulario vuole monitorare la tua posizione ma Google Play Services non è disponibile.</string>
@@ -515,10 +511,6 @@
     <item quantity="many">%d metri</item>
     <item quantity="other">%d metri</item>
   </plurals>
-  <string name="location_status_searching">Sto ricercando la posizione, prego attendere…</string>
-  <string name="location_status_accuracy">Precisione della posizione GPS%.2f m</string>
-  <string name="location_status_acceptable">Precisione posizione: %.2fm (accettabile)</string>
-  <string name="location_status_unacceptable">Precisione posizione: %.2fm (inaccettabile)</string>
   <string name="collection_status_paused">Punti inseriti: %d</string>
   <string name="collection_status_placement">Punti inseriti: %d (tocca per inserire punti)</string>
   <string name="collection_status_manual">Punti inseriti: %d (salvataggio manuale)</string>

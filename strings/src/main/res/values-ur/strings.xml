@@ -113,9 +113,6 @@
   <string name="too_complex_form">یہ فارم اس فون کے لئے بہت پیچیدہ ہے۔ اس کو سادہ کرنے کی کوشش کریں، یا پھر فورم پہ مدد حاصل کریں۔</string>
   <string name="survey_internal_error">اندرونی خرابی: فوری طور پر سیٹ اپ ناکام ہوگیا</string>
   <string name="save_enter_data_description">آپ ‎%s‏ کے آخر پر ہیں۔</string>
-  <string name="form_edits_warning_title">فائنل فارم میں تبدیلی نہیں کی جاسکتی۔</string>
-  <string name="form_edits_warning_title_auto_send_enabled">بھیجیں گئے فارم میں تبدیلی نہیں کی جاسکتی۔</string>
-  <string name="form_edits_warning_message">اگر آپ فارم میں تبدیلی کرنا چاہتے ہیں تو فارم کو \"ڈرافٹ میں محفوط\" رکھے، جب تک فارم جمع کرانے کے لئے تیار نہیں۔</string>
   <string name="form_edits_warning_learn_more">مزید جانیں</string>
   <string name="save_as_draft">ڈرافٹ میں محفوظ کریں</string>
   <string name="finalize">فائنل کریں</string>
@@ -409,7 +406,6 @@
   <!--Text for message displayed in a dialog to confirm that the layer should be deleted. The placeholder is the name of the layer as displayed in the list-->
   <string name="record_geopoint">پوائنٹ کو ریکارڈ کریں</string>
   <string name="location_accuracy">درستگی: %1$s میٹر</string>
-  <string name="location_provider">لوکیشن مہیا کرنے والا: %s</string>
   <string name="provider_disabled_error">معذرت، لوکیشن فراہم کرنے والے نااہل کئے گئے ہیں</string>
   <string name="gps_result">طول عرض:  %1$s \nطول بلد: %2$s \n اونچائی:  %3$s میٹر\n ایکیوریسی: %4$s میٹر</string>
   <string name="google_play_services_not_available">یہ فارم آپ کی لوکیشن کو ریکارڈ کرنا چاہتا ہے، مگر Google Play Services دستیاب نہیں ہیں۔</string>
@@ -475,10 +471,6 @@
     <item quantity="one"> %d میٹرز</item>
     <item quantity="other"> %d میٹرز</item>
   </plurals>
-  <string name="location_status_searching">لوکیشن منتخب کی جا رہی ہے۔ انتظار کریں۔۔۔</string>
-  <string name="location_status_accuracy">لوکیشن درستگی: %.2f میٹر</string>
-  <string name="location_status_acceptable">لوکیشن درستگی: %.2f میٹر (مناسب)</string>
-  <string name="location_status_unacceptable">لوکیشن درستگی: %.2f میٹر (نامناسب)</string>
   <string name="collection_status_paused">درج شدہ پوائنٹس: %d</string>
   <string name="collection_status_placement">درج شدہ پوائنٹس: %d (کلک کرکے پوائنٹس کو سیٹ کریں)</string>
   <string name="collection_status_manual">درج شدہ پوائنٹس: %d (دستی ریکارڈنگ)</string>

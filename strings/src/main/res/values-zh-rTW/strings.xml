@@ -113,9 +113,6 @@
   <string name="too_complex_form">此表單對於此設備太複雜。嘗試簡化表達或在論壇上尋求幫助。</string>
   <string name="survey_internal_error">內部錯誤：提示步驟失敗。</string>
   <string name="save_enter_data_description">您已在 %s 的結尾。</string>
-  <string name="form_edits_warning_title">最終的表格不可編輯。</string>
-  <string name="form_edits_warning_title_auto_send_enabled">請注意，傳送後表格不可編輯。</string>
-  <string name="form_edits_warning_message">如果您需要對表格進行編輯，請點選「儲存為草稿」，直到您準備好傳送為止。</string>
   <string name="form_edits_warning_learn_more">瞭解更多</string>
   <string name="save_as_draft">儲存為草稿</string>
   <string name="finalize">確定完成</string>
@@ -442,7 +439,6 @@
   <string name="delete_layer_confirmation_message">您確定要刪除 %1$s 離線圖層嗎？</string>
   <string name="record_geopoint">記錄點</string>
   <string name="location_accuracy">精確度: %1$s m</string>
-  <string name="location_provider">位置提供程式: %s</string>
   <string name="provider_disabled_error">位置服務被關閉！</string>
   <string name="gps_result">緯度: %1$s\n經度: %2$s\n高程: %3$sm\n精度: %4$sm</string>
   <string name="google_play_services_not_available">此表單希望跟蹤您的位置，但Google Play服務不可用。</string>
@@ -507,10 +503,6 @@
   <plurals name="number_of_meters">
     <item quantity="other">%d 米</item>
   </plurals>
-  <string name="location_status_searching">正在搜索位置，請稍候…</string>
-  <string name="location_status_accuracy">位置精度: %.2f m</string>
-  <string name="location_status_acceptable">位置精度: %.2f m (可接受)</string>
-  <string name="location_status_unacceptable">位置精度: %.2f m (不可接受)</string>
   <string name="collection_status_paused">輸入的點數: %d</string>
   <string name="collection_status_placement">輸入的點數: %d (點擊以放置點)</string>
   <string name="collection_status_manual">輸入的點數: %d (手動記錄)</string>

@@ -113,9 +113,6 @@
   <string name="too_complex_form">Tento formulář je pro toto zařízení příliš složitý. Zkuste zjednodušit výrazy nebo požádat o pomoc na fóru.</string>
   <string name="survey_internal_error">Vnitřní chyba: přechod k otázce selhal.</string>
   <string name="save_enter_data_description">Jste na konci %s.</string>
-  <string name="form_edits_warning_title">Dokončené formuláře nelze upravovat.</string>
-  <string name="form_edits_warning_title_auto_send_enabled">Odeslané formuláře nelze upravovat.</string>
-  <string name="form_edits_warning_message">Pokud potřebujete formulář upravit, uložte jej jako návrh, dokud nebudete připraveni k odeslání.</string>
   <string name="form_edits_warning_learn_more">Více informací</string>
   <string name="save_as_draft">Uložit jako návrh</string>
   <string name="finalize">Dokončit</string>
@@ -432,7 +429,6 @@
   <string name="delete_layer_confirmation_message">Opravdu chcete odstranit %1$s vrstvu offline?</string>
   <string name="record_geopoint">Zaznamenat bod</string>
   <string name="location_accuracy">Přesnost: %1$s m</string>
-  <string name="location_provider">Poskytovatel polohy: %s</string>
   <string name="provider_disabled_error">Nástroje pro získání polohy jsou zakázané!</string>
   <string name="gps_result">Zeměpisná šířka:%1$s \n Zeměpisná délka: %2$s \n Výška: %3$s m \n Přesnost %4$sm</string>
   <string name="google_play_services_not_available">Tento formulář chce sledovat vaši polohu, ale služby Google Play nejsou k dispozici.</string>
@@ -506,10 +502,6 @@
     <item quantity="many">%d metrů</item>
     <item quantity="other">%d metrů</item>
   </plurals>
-  <string name="location_status_searching">Hledám polohu, počkejte prosím…</string>
-  <string name="location_status_accuracy">Přesnost polohy: %.2f m</string>
-  <string name="location_status_acceptable">Přesnost umístění:  %.2f m (přijatelná)</string>
-  <string name="location_status_unacceptable">Přesnost umístění: %.2f m (nepřijatelná)</string>
   <string name="collection_status_paused">Zadané body: %d</string>
   <string name="collection_status_placement">Zadané body: %d (klepnutím umístíte body)</string>
   <string name="collection_status_manual">Zadané body: %d (ruční nahrávání)</string>
