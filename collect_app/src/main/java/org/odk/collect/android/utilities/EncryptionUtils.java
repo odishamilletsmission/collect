@@ -42,7 +42,6 @@ import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -136,7 +135,7 @@ public class EncryptionUtils {
             // this is the md5 hash of the instanceID and the symmetric key
             try {
                 MessageDigest md = MessageDigest.getInstance("MD5");
-                md.update(instanceMetadata.instanceId.getBytes(StandardCharsets.UTF_8));
+                md.update(instanceMetadata.instanceId.getBytes(UTF_8));
                 md.update(key);
                 byte[] messageDigest = md.digest();
                 ivSeedArray = Arrays.copyOf(messageDigest, IV_BYTE_LENGTH);
@@ -199,9 +198,9 @@ public class EncryptionUtils {
             byte[] messageDigest;
             try {
                 MessageDigest md = MessageDigest.getInstance("MD5");
-                md.update(elementSignatureSource.toString().getBytes(StandardCharsets.UTF_8));
+                md.update(elementSignatureSource.toString().getBytes(UTF_8));
                 messageDigest = md.digest();
-            } catch (NoSuchAlgorithmException e) {
+            } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
                 Timber.e(e, "Exception thrown while constructing md5 hash.");
                 throw new IllegalArgumentException(e.getMessage());
             }
@@ -549,7 +548,7 @@ public class EncryptionUtils {
         OutputStreamWriter writer = null;
         try {
             fout = new FileOutputStream(submissionXml);
-            writer = new OutputStreamWriter(fout, StandardCharsets.UTF_8);
+            writer = new OutputStreamWriter(fout, UTF_8);
 
             KXmlSerializer serializer = new KXmlSerializer();
             serializer.setOutput(writer);

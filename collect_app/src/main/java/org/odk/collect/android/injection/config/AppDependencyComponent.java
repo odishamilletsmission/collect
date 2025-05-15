@@ -75,6 +75,7 @@ import org.odk.collect.android.utilities.SavepointsRepositoryProvider;
 import org.odk.collect.android.utilities.ThemeUtils;
 import org.odk.collect.android.wassan.activity.LoginActivity;
 import org.odk.collect.android.wassan.activity.MainActivity;
+import org.odk.collect.android.wassan.activity.SplashActivity;
 import org.odk.collect.android.wassan.app.CustomInstanceChooserList;
 import org.odk.collect.android.wassan.fragments.CalculatorFragment;
 import org.odk.collect.android.wassan.fragments.DashboardFragment;
@@ -267,6 +268,8 @@ public interface AppDependencyComponent {
     void inject(FormHierarchyFragmentHostActivity formHierarchyFragmentHostActivity);
 
     //Niranjan Added
+    void inject(SplashActivity splashActivity);
+
     void inject(MainActivity mainActivity);
 
     void inject(LoginActivity loginActivity);

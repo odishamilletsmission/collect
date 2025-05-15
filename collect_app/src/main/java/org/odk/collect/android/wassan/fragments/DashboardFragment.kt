@@ -20,6 +20,7 @@ import org.odk.collect.android.activities.InstanceChooserList
 import org.odk.collect.android.formlists.blankformlist.BlankFormListViewModel
 import org.odk.collect.android.formlists.blankformlist.OnFormItemClickListener
 import org.odk.collect.android.injection.DaggerUtils
+import org.odk.collect.android.instancemanagement.send.InstanceUploaderListActivity
 import org.odk.collect.android.preferences.dialogs.ServerAuthDialogFragment
 import org.odk.collect.android.projects.ProjectsDataService
 import org.odk.collect.android.utilities.ApplicationConstants
@@ -202,20 +203,30 @@ class DashboardFragment : Fragment(), OnFormItemClickListener,FormActionListener
                     ApplicationConstants.BundleKeys.FORM_MODE,
                     ApplicationConstants.FormModes.EDIT_SAVED,
                 )
-                putExtra("FILTER_ID", id)
+                putExtra("FILTER_ID", formId)
+            }
+        )
+
+    }
+
+    override fun onReadyClick(formId: String) {
+        formLauncher.launch(
+            Intent(requireActivity(), InstanceUploaderListActivity::class.java).apply {
+                putExtra("FILTER_ID", formId) // Pass the filterId
             }
         )
     }
 
-
-
-
-    override fun onReadyClick(formId: String) {
-        TODO("Not yet implemented")
-    }
-
     override fun onSentClick(formId: String) {
-        TODO("Not yet implemented")
+        startActivity(
+            Intent(requireActivity(), InstanceChooserList::class.java).apply {
+                putExtra(
+                    ApplicationConstants.BundleKeys.FORM_MODE,
+                    ApplicationConstants.FormModes.VIEW_SENT
+                )
+                putExtra("FILTER_ID", formId)
+            }
+        )
     }
 
     private fun getFilteredInstances(formId: String): List<Instance> {

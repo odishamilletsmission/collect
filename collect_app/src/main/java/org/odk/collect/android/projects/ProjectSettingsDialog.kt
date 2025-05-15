@@ -136,7 +136,6 @@ class ProjectSettingsDialog(private val viewModelFactory: ViewModelProvider.Fact
 
             ActivityUtils.startActivityAndCloseAllOthers(requireActivity(), MainActivity::class.java)
             ToastUtils.showLongToast(
-                requireContext(),
                 getString(org.odk.collect.strings.R.string.switched_project, project.name)
             )
             dismiss()

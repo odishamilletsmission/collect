@@ -10,6 +10,8 @@ import org.odk.collect.android.external.InstancesContract;
 import org.odk.collect.android.projects.ProjectsDataService;
 import org.odk.collect.forms.instances.Instance;
 
+import java.util.Arrays;
+
 @Deprecated
 public class MyCursorLoaderFactory {
 
@@ -44,24 +46,31 @@ public class MyCursorLoaderFactory {
     }
 
     public CursorLoader createEditableInstancesCursorLoader(CharSequence charSequence, String sortOrder,String filterId) {
-        CursorLoader cursorLoader;
-        if (charSequence.length() == 0) {
-            String selection = DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=?";
-            String[] selectionArgs = {Instance.STATUS_INCOMPLETE, Instance.STATUS_INVALID, Instance.STATUS_VALID};
+        String selection;
+        String[] selectionArgs;
 
-            cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
+        if (charSequence.length() == 0) {
+            selection = "(" + DatabaseInstanceColumns.STATUS + "=? OR " + DatabaseInstanceColumns.STATUS + "=? OR " + DatabaseInstanceColumns.STATUS + "=?)";
+            selectionArgs = new String[]{Instance.STATUS_INCOMPLETE, Instance.STATUS_INVALID, Instance.STATUS_VALID};
+
         } else {
-            String selection = "(" + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=?)" +
-                    "and " + DatabaseInstanceColumns.DISPLAY_NAME + " LIKE ?";
-            String[] selectionArgs = {
+            selection = "(" + DatabaseInstanceColumns.STATUS + "=? OR " + DatabaseInstanceColumns.STATUS + "=? OR " + DatabaseInstanceColumns.STATUS + "=?)" +
+                    " AND " + DatabaseInstanceColumns.DISPLAY_NAME + " LIKE ?";
+            selectionArgs = new String[]{
                     Instance.STATUS_INCOMPLETE, Instance.STATUS_INVALID, Instance.STATUS_VALID,
                     "%" + charSequence + "%"
             };
-
-            cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
         }
 
-        return cursorLoader;
+        // Add filterId condition without changing selectionArgs
+        if (filterId != null) {
+            selection += " AND " + DatabaseInstanceColumns.JR_FORM_ID + " = ?";
+            selectionArgs = Arrays.copyOf(selectionArgs, selectionArgs.length + 1);
+            selectionArgs[selectionArgs.length - 1] = filterId.toString();
+
+        }
+
+        return getInstancesCursorLoader(selection, selectionArgs, sortOrder);
     }
 
     public CursorLoader createFinalizedInstancesCursorLoader(CharSequence charSequence, String sortOrder) {

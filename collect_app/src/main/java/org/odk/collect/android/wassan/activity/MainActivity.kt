@@ -91,39 +91,43 @@ class MainActivity : LocalizedActivity(), NavigationView.OnNavigationItemSelecte
         val viewModelProvider = ViewModelProvider(this, viewModelFactory)
         currentProjectViewModel = viewModelProvider[CurrentProjectViewModel::class.java]
 
-        initLogin()
+        checkLoginStatus()
+        initUIComponents()
+    }
+
+    private fun checkLoginStatus() {
+        if (!settingsProvider.getMetaSettings().getBoolean(MetaKeys.IS_LOGIN)) {
+            ActivityUtils.startActivityAndCloseAllOthers(this, LoginActivity::class.java)
+        } else {
+            initProject()
+        }
+    }
+    private fun initUIComponents() {
         initMapbox()
         initToolbar()
         initBottomToolbar()
-
         val syncForm: FloatingActionButton = findViewById(R.id.newform)
         syncForm.setOnClickListener {
             startActivityForResult(Intent(this, FormDownloadListActivity::class.java),1001)
         }
     }
 
-    private fun initLogin() {
-        val isLogged = settingsProvider.getMetaSettings().getBoolean(MetaKeys.IS_LOGIN)
-
-        if (!isLogged) {
-            ActivityUtils.startActivityAndCloseAllOthers(this, LoginActivity::class.java)
-            return
-        }else{
-            initProject()
-        }
-    }
-
     private fun initProject() {
         val gson = Gson()
-        val jsonUser = settingsProvider.getMetaSettings().getString(MetaKeys.KEY_USER)
-        val user: User = gson.fromJson(jsonUser, User::class.java)
-        val parser = JsonParser()
-        val jsonObject: JsonObject = parser.parse(jsonUser).asJsonObject
-        val projectsJsonString = jsonObject.getAsJsonPrimitive("projects").asString
+        val userJson = settingsProvider.getMetaSettings().getString(MetaKeys.KEY_USER)
+        val user: User = gson.fromJson(userJson, User::class.java)
+       // val projectsArray: JsonArray = JsonParser.parseString(userJson).asJsonObject.getAsJsonArray("projects")
+
+        val root = JsonParser.parseString(userJson).asJsonObject
+
+        val projectsJsonString = root.get("projects").asString // Step 1
+        val projectsArray = JsonParser.parseString(projectsJsonString).asJsonArray // Step 2
+
+
         projectsRepository.deleteAll()
         // Parse the JSON string representing projects into a JsonArray
-        val projectsArray: JsonArray = parser.parse(projectsJsonString).asJsonArray
-        for (projectElement in projectsArray) {
+
+        projectsArray.forEach { projectElement ->
             val projectObject = projectElement.asJsonObject
             val projectId = projectObject.get("central_project_id").asString
             val projectName = projectObject.get("project_name").asString
@@ -132,6 +136,7 @@ class MainActivity : LocalizedActivity(), NavigationView.OnNavigationItemSelecte
             val serverAddress = projectObject.get("server_url").asString
             val centralUserToken = projectObject.get("central_user_token").asString
             val serverUrl=serverAddress+"/key/"+centralUserToken+"/projects/"+projectId
+
 
             projectsRepository.save(
                 Project.Saved(
@@ -390,7 +395,6 @@ class MainActivity : LocalizedActivity(), NavigationView.OnNavigationItemSelecte
 
         ActivityUtils.startActivityAndCloseAllOthers(this, MainActivity::class.java)
         ToastUtils.showLongToast(
-            this,
             getString(org.odk.collect.strings.R.string.switched_project, project.name)
         )
     }

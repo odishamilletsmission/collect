@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.StringRequest
@@ -19,7 +20,6 @@ import org.json.JSONObject
 import org.odk.collect.android.R
 import org.odk.collect.android.activities.ActivityUtils
 import org.odk.collect.android.injection.DaggerUtils
-import org.odk.collect.android.mainmenu.MainMenuActivity
 import org.odk.collect.android.wassan.model.User
 import org.odk.collect.settings.SettingsProvider
 import org.odk.collect.settings.keys.MetaKeys
@@ -27,6 +27,7 @@ import org.odk.collect.settings.keys.ProjectKeys
 import org.odk.collect.strings.localization.LocalizedActivity
 import timber.log.Timber
 import javax.inject.Inject
+
 
 class LoginActivity : LocalizedActivity() {
     @Inject
@@ -185,7 +186,13 @@ class LoginActivity : LocalizedActivity() {
                 return params
             }
         }
-
+        request.setRetryPolicy(
+            DefaultRetryPolicy(
+                30000,  // 30 sec
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+            )
+        )
         // Add the request to the RequestQueue
         Volley.newRequestQueue(this).add(request)
     }
