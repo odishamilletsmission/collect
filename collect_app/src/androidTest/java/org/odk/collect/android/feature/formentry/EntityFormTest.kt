@@ -1,6 +1,8 @@
 package org.odk.collect.android.feature.formentry
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.hamcrest.Matchers.containsString
+import org.hamcrest.Matchers.equalTo
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
@@ -155,6 +157,48 @@ class EntityFormTest {
     }
 
     @Test
+    fun entityListFormsAllShowAsUpdatedTogether() {
+        testDependencies.server.apply {
+            addForm(
+                "one-question-entity-update.xml",
+                listOf(EntityListItem("people.csv", "people.csv", 1))
+            )
+
+            addForm(
+                "one-question-entity-follow-up.xml",
+                listOf(EntityListItem("people.csv", "people.csv", 1))
+            )
+        }
+
+        val mainMenuPage = rule.withMatchExactlyProject(testDependencies.server.url)
+
+        testDependencies.server.apply {
+            removeForm("One Question Entity Update")
+            removeForm("One Question Entity Follow Up")
+
+            addForm(
+                "one-question-entity-update.xml",
+                listOf(EntityListItem("people.csv", "people.csv", 2))
+            )
+
+            addForm(
+                "one-question-entity-follow-up.xml",
+                listOf(EntityListItem("people.csv", "people.csv", 2))
+            )
+        }
+
+        mainMenuPage.clickFillBlankForm()
+            .assertTextBesides(equalTo("One Question Entity Update"), containsString("Added on"))
+            .assertTextBesides(equalTo("One Question Entity Follow Up"), containsString("Added on"))
+            .clickRefresh()
+            .assertTextBesides(equalTo("One Question Entity Update"), containsString("Updated on"))
+            .assertTextBesides(
+                equalTo("One Question Entity Follow Up"),
+                containsString("Updated on")
+            )
+    }
+
+    @Test
     fun fillingEntityRegistrationForm_whenFormUsesOldSpecVersion_doesNotCreateEntityForFollowUpForms() {
         testDependencies.server.addForm("one-question-entity-registration-v2023.1.xml")
         testDependencies.server.addForm(
@@ -214,6 +258,17 @@ class EntityFormTest {
             .copyForm("one-question-entity-registration.xml")
             .startBlankForm("One Question Entity Registration")
             .pressBackAndDiscardForm()
+            .startBlankForm("One Question Entity Registration")
+    }
+
+    @Test
+    fun closingBrokenEntityForm_releasesTheLockAndLetsOtherEntityFormsToBeStarted() {
+        rule.startAtFirstLaunch()
+            .clickTryCollect()
+            .copyForm("one-question-entity-registration-broken.xml")
+            .copyForm("one-question-entity-registration.xml")
+            .startBlankFormWithError("One Question Entity Registration Broken", true)
+            .clickOKOnDialog(MainMenuPage())
             .startBlankForm("One Question Entity Registration")
     }
 

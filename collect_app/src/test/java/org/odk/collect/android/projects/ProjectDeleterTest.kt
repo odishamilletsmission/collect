@@ -102,6 +102,20 @@ class ProjectDeleterTest {
     }
 
     @Test
+    fun `If there are new edits the project should not be deleted`() {
+        instancesRepository.save(
+            Instance.Builder()
+                .status(Instance.STATUS_NEW_EDIT)
+                .build()
+        )
+
+        val result = deleter.deleteProject(project1.uuid)
+
+        assertThat(result, instanceOf(DeleteProjectResult.UnsentInstances::class.java))
+        assertThat(projectsRepository.projects.contains(project1), equalTo(true))
+    }
+
+    @Test
     fun `If there are complete instances the project should not be deleted`() {
         instancesRepository.save(
             Instance.Builder()
@@ -154,7 +168,7 @@ class ProjectDeleterTest {
     @Test
     fun `If there are running background jobs that use blank forms the project should not be deleted`() {
         val formChangeLock = BooleanChangeLock().apply {
-            lock()
+            lock("blah")
         }
         whenever(changeLockProvider.getFormLock(any())).thenReturn(formChangeLock)
 
@@ -167,7 +181,7 @@ class ProjectDeleterTest {
     @Test
     fun `If there are running background jobs that use saved forms the project should not be deleted`() {
         val changeLock = BooleanChangeLock().apply {
-            lock()
+            lock("blah")
         }
         whenever(changeLockProvider.getInstanceLock(any())).thenReturn(changeLock)
 

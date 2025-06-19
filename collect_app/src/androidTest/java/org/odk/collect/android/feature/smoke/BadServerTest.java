@@ -34,7 +34,7 @@ public class BadServerTest {
         testDependencies.server.removeHashInFormList();
         testDependencies.server.addForm("One Question", "one_question", "1", "one-question.xml");
 
-        rule.withProject(testDependencies.server.getURL())
+        rule.withProject(testDependencies.server.getUrl())
                 .clickGetBlankForm()
                 .clickGetSelected()
                 .assertMessage("1 of 1 downloads failed!")
@@ -58,8 +58,8 @@ public class BadServerTest {
         testDependencies.server.removeMediaFileHashPrefix();
         testDependencies.server.addForm("One Question", "one_question", "1", "one-question.xml", List.of("fruits.csv"));
 
-        rule.withProject(testDependencies.server.getURL())
-                .copyForm("one-question.xml", List.of("fruits.csv"), testDependencies.server.getHostName())
+        rule.withProject(testDependencies.server.getUrl())
+                .copyForm("one-question.xml", Arrays.asList("fruits.csv"), testDependencies.server.getHostName())
                 .clickGetBlankForm()
                 .assertText(org.odk.collect.strings.R.string.newer_version_of_a_form_info);
     }
@@ -75,8 +75,8 @@ public class BadServerTest {
         testDependencies.server.returnRandomMediaFileHash();
         testDependencies.server.addForm("One Question", "one_question", "1", "one-question.xml", List.of("fruits.csv"));
 
-        rule.withProject(testDependencies.server.getURL())
-                .copyForm("one-question.xml", List.of("fruits.csv"), testDependencies.server.getHostName())
+        rule.withProject(testDependencies.server.getUrl())
+                .copyForm("one-question.xml", Arrays.asList("fruits.csv"), testDependencies.server.getHostName())
                 .clickGetBlankForm()
                 .assertText(org.odk.collect.strings.R.string.newer_version_of_a_form_info)
                 .clickGetSelected()

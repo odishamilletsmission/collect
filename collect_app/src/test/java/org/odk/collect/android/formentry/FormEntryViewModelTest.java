@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.odk.collect.android.external.FormUriActivityKt.FORM_ENTRY_TOKEN;
 import static org.odk.collect.androidtest.LiveDataTestUtilsKt.getOrAwaitValue;
 import static java.util.Arrays.asList;
 
@@ -36,6 +37,7 @@ import org.odk.collect.android.javarosawrapper.FakeFormController;
 import org.odk.collect.android.support.MockFormEntryPromptBuilder;
 import org.odk.collect.android.utilities.ChangeLocks;
 import org.odk.collect.androidshared.data.Consumable;
+import org.odk.collect.forms.Form;
 import org.odk.collect.forms.FormsRepository;
 import org.odk.collect.formstest.InMemFormsRepository;
 import org.odk.collect.shared.locks.BooleanChangeLock;
@@ -56,6 +58,7 @@ public class FormEntryViewModelTest {
     private FormIndex startingIndex;
     private AuditEventLogger auditEventLogger;
     private FakeScheduler scheduler;
+    private final Form form = new Form.Builder().formFilePath("blah").build();
     private final FormSessionRepository formSessionRepository = new InMemFormSessionRepository();
     private final FormsRepository formsRepository = new InMemFormsRepository();
     private final ChangeLocks changeLocks = new ChangeLocks(new BooleanChangeLock(), new BooleanChangeLock());
@@ -71,7 +74,7 @@ public class FormEntryViewModelTest {
 
         scheduler = new FakeScheduler();
 
-        formSessionRepository.set("blah", formController, mock());
+        formSessionRepository.set("blah", formController, form);
         viewModel = new FormEntryViewModel(() -> 0L, scheduler, formSessionRepository, "blah", formsRepository, changeLocks);
     }
 
@@ -450,5 +453,13 @@ public class FormEntryViewModelTest {
         formController.setFormDef(formDef);
 
         assertThat(viewModel.isFormEditableAfterFinalization(), equalTo(true));
+    }
+
+    @Test
+    public void exit_releasesFormsLock() {
+        ((BooleanChangeLock) changeLocks.getFormsLock()).lock(FORM_ENTRY_TOKEN);
+
+        viewModel.exit();
+        assertThat(changeLocks.getFormsLock().tryLock(FORM_ENTRY_TOKEN), equalTo(true));
     }
 }

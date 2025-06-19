@@ -87,6 +87,8 @@ jsoup = { group = "org.jsoup", name = "jsoup", version = "1.18.3" }
 #Niranjan added
 volley = { group = "com.android.volley", name = "volley", version = "1.2.1" }
 
+mlkit-barcodescanning = 'com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1'
+camera-mlkit-vision = { group = "androidx.camera", name = "camera-mlkit-vision", version = "1.4.2" }
 
 # Test dependencies
 junit = { group = "junit", name = "junit", version = "4.13.2" }

@@ -3,6 +3,7 @@ package org.odk.collect.android.formmanagement
 import org.odk.collect.analytics.Analytics
 import org.odk.collect.android.formmanagement.download.FormDownloadException
 import org.odk.collect.android.formmanagement.download.FormDownloader
+import org.odk.collect.android.instancemanagement.autosend.getLastUpdated
 import org.odk.collect.android.utilities.FileUtils
 import org.odk.collect.async.OngoingWorkListener
 import org.odk.collect.entities.LocalEntityUseCases
@@ -52,7 +53,11 @@ object ServerFormUseCases {
     }
 
     @JvmStatic
-    fun copySavedFileFromPreviousFormVersionIfExists(formsRepository: FormsRepository, formId: String, mediaDirPath: String) {
+    fun copySavedFileFromPreviousFormVersionIfExists(
+        formsRepository: FormsRepository,
+        formId: String,
+        mediaDirPath: String
+    ) {
         val lastSavedFile: File? = formsRepository
             .getAllByFormId(formId)
             .maxByOrNull { form -> form.date }
@@ -88,61 +93,111 @@ object ServerFormUseCases {
 
             val tempMediaFile = File(tempMediaDir, mediaFile.filename)
 
-            val existingFile = searchForExistingMediaFile(formsRepository, formToDownload, mediaFile)
-            existingFile.also {
-                if (it != null) {
-                    if (it.getMd5Hash().contentEquals(mediaFile.hash)) {
-                        FileUtils.copyFile(it, tempMediaFile)
-                    } else {
-                        val existingFileHash = it.getMd5Hash()
-                        val file = formSource.fetchMediaFile(mediaFile.downloadUrl)
-                        FileUtils.interuptablyWriteFile(file, tempMediaFile, tempDir, stateListener)
+            val isEntityList = mediaFile.type != null
+            if (isEntityList) {
+                val entityListName = getEntityListFromFileName(mediaFile)
+                val localEntityList = entitiesRepository.getList(entityListName)
 
-                        if (!tempMediaFile.getMd5Hash().contentEquals(existingFileHash)) {
+                entitiesDownloaded = true
+
+                if (localEntityList == null || mediaFile.hash != localEntityList.hash) {
+                    newAttachmentsDownloaded = true
+                    downloadMediaFile(formSource, mediaFile, tempMediaFile, tempDir, stateListener)
+
+                    /**
+                     * We wrap and then rethrow exceptions that happen here to make them easier to
+                     * track in Crashlytics. This can be removed in the next release once any
+                     * unexpected exceptions "in the wild" are identified.
+                     */
+                    try {
+                        LocalEntityUseCases.updateLocalEntitiesFromServer(
+                            entityListName,
+                            tempMediaFile,
+                            entitiesRepository,
+                            entitySource,
+                            mediaFile
+                        )
+                    } catch (t: Throwable) {
+                        throw EntityListUpdateException(t)
+                    }
+                } else {
+                    val existingForm = formsRepository.getAllByFormIdAndVersion(
+                        formToDownload.formId,
+                        formToDownload.formVersion
+                    ).getOrNull(0)
+
+                    if (existingForm != null) {
+                        val entityListLastUpdated = localEntityList.lastUpdated
+                        if (entityListLastUpdated != null && entityListLastUpdated > existingForm.getLastUpdated()) {
                             newAttachmentsDownloaded = true
                         }
                     }
-                } else {
-                    val file = formSource.fetchMediaFile(mediaFile.downloadUrl)
-                    FileUtils.interuptablyWriteFile(file, tempMediaFile, tempDir, stateListener)
-                    newAttachmentsDownloaded = true
-                }
-            }
-
-            if (mediaFile.type != null) {
-                /**
-                 * We wrap and then rethrow exceptions that happen here to make them easier to
-                 * track in Crashlytics. This can be removed in the next release once any
-                 * unexpected exceptions "in the wild" are identified.
-                 */
-                try {
-                    val entityListName = getEntityListFromFileName(mediaFile)
-                    LocalEntityUseCases.updateLocalEntitiesFromServer(
-                        entityListName,
-                        tempMediaFile,
-                        entitiesRepository,
-                        entitySource,
-                        mediaFile
-                    )
-                    entitiesDownloaded = true
-                } catch (t: Throwable) {
-                    throw EntityListUpdateException(t)
                 }
             } else {
-                /**
-                 * Track CSVs that have names that clash with entity lists in the project. If
-                 * these CSVs are being used as part of a `select_one_from_file` question, the
-                 * instance ID will be the file name with the extension removed.
-                 */
-                val isCsv = mediaFile.filename.endsWith(".csv")
-                val mostLikelyInstanceId = getEntityListFromFileName(mediaFile)
-                if (isCsv && entitiesRepository.getList(mostLikelyInstanceId) != null) {
-                    Analytics.setUserProperty("HasEntityListCollision", "true")
+                val existingFile =
+                    searchForExistingMediaFile(formsRepository, formToDownload, mediaFile)
+                existingFile.also {
+                    if (it != null) {
+                        if (it.getMd5Hash().contentEquals(mediaFile.hash)) {
+                            FileUtils.copyFile(it, tempMediaFile)
+                        } else {
+                            val existingFileHash = it.getMd5Hash()
+                            downloadMediaFile(
+                                formSource,
+                                mediaFile,
+                                tempMediaFile,
+                                tempDir,
+                                stateListener
+                            )
+
+                            if (!tempMediaFile.getMd5Hash().contentEquals(existingFileHash)) {
+                                newAttachmentsDownloaded = true
+                            }
+                        }
+                    } else {
+                        downloadMediaFile(
+                            formSource,
+                            mediaFile,
+                            tempMediaFile,
+                            tempDir,
+                            stateListener
+                        )
+                        newAttachmentsDownloaded = true
+                    }
                 }
+
+                logEntityListClashes(mediaFile, entitiesRepository)
             }
         }
 
         return MediaFilesDownloadResult(newAttachmentsDownloaded, entitiesDownloaded)
+    }
+
+    private fun downloadMediaFile(
+        formSource: FormSource,
+        mediaFile: MediaFile,
+        tempMediaFile: File,
+        tempDir: File,
+        stateListener: OngoingWorkListener
+    ) {
+        val file = formSource.fetchMediaFile(mediaFile.downloadUrl)
+        FileUtils.interuptablyWriteFile(file, tempMediaFile, tempDir, stateListener)
+    }
+
+    /**
+     * Track CSVs that have names that clash with entity lists in the project. If
+     * these CSVs are being used as part of a `select_one_from_file` question, the
+     * instance ID will be the file name with the extension removed.
+     */
+    private fun logEntityListClashes(
+        mediaFile: MediaFile,
+        entitiesRepository: EntitiesRepository
+    ) {
+        val isCsv = mediaFile.filename.endsWith(".csv")
+        val mostLikelyInstanceId = getEntityListFromFileName(mediaFile)
+        if (isCsv && entitiesRepository.getList(mostLikelyInstanceId) != null) {
+            Analytics.setUserProperty("HasEntityListCollision", "true")
+        }
     }
 
     private fun getEntityListFromFileName(mediaFile: MediaFile) =

@@ -17,6 +17,7 @@ import org.odk.collect.androidshared.data.AppState
 import org.odk.collect.forms.instances.Instance.STATUS_COMPLETE
 import org.odk.collect.forms.instances.Instance.STATUS_INCOMPLETE
 import org.odk.collect.forms.instances.Instance.STATUS_INVALID
+import org.odk.collect.forms.instances.Instance.STATUS_NEW_EDIT
 import org.odk.collect.forms.instances.Instance.STATUS_SUBMISSION_FAILED
 import org.odk.collect.forms.instances.Instance.STATUS_SUBMITTED
 import org.odk.collect.forms.instances.Instance.STATUS_VALID
@@ -71,7 +72,7 @@ class InstancesDataServiceTest {
 
     @Test
     fun `instances should not be deleted if the instances database is locked`() {
-        projectDependencyModule.instancesLock.lock()
+        (projectDependencyModule.instancesLock as BooleanChangeLock).lock("blah")
         val result = instancesDataService.deleteInstances(projectId, longArrayOf(1))
         assertThat(result, equalTo(false))
     }
@@ -154,6 +155,13 @@ class InstancesDataServiceTest {
             InstanceFixtures.instance(
                 form = form,
                 canDeleteBeforeSend = false,
+                status = STATUS_NEW_EDIT
+            )
+        )
+        instancesRepository.save(
+            InstanceFixtures.instance(
+                form = form,
+                canDeleteBeforeSend = false,
                 status = STATUS_SUBMITTED
             )
         )
@@ -172,6 +180,43 @@ class InstancesDataServiceTest {
         assertThat(remainingInstances.any { it.status == STATUS_SUBMISSION_FAILED }, equalTo(true))
         assertThat(File(remainingInstances[0].instanceFilePath).parentFile?.exists(), equalTo(true))
         assertThat(File(remainingInstances[1].instanceFilePath).parentFile?.exists(), equalTo(true))
+    }
+
+    @Test
+    fun `#reset can delete forms with edits`() {
+        val formsRepository = projectDependencyModule.formsRepository
+        val form = formsRepository.save(FormFixtures.form())
+
+        val instancesRepository = projectDependencyModule.instancesRepository
+        val originalInstance = instancesRepository.save(
+            InstanceFixtures.instance(
+                form = form,
+                status = STATUS_COMPLETE,
+                lastStatusChangeDate = 1
+            )
+        )
+        instancesRepository.save(
+            InstanceFixtures.instance(
+                form = form,
+                status = STATUS_COMPLETE,
+                lastStatusChangeDate = 2,
+                editOf = originalInstance.dbId,
+                editNumber = 1
+            )
+        )
+        instancesRepository.save(
+            InstanceFixtures.instance(
+                form = form,
+                status = STATUS_VALID,
+                lastStatusChangeDate = 3,
+                editOf = originalInstance.dbId,
+                editNumber = 2
+            )
+        )
+
+        instancesDataService.reset(projectDependencyModule.projectId)
+        val remainingInstances = instancesRepository.all
+        assertThat(remainingInstances.size, equalTo(0))
     }
 
     @Test
