@@ -21,7 +21,6 @@ class ProjectsDataService(
 
     private val currentProject by data(DataKeys.PROJECT, null) {
         val currentProjectId = getCurrentProjectId()
-
         if (currentProjectId != null) {
             projectsRepository.get(currentProjectId)
         } else {

@@ -16,11 +16,15 @@ import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
+import com.google.gson.JsonParser
 import org.json.JSONObject
 import org.odk.collect.android.R
 import org.odk.collect.android.activities.ActivityUtils
 import org.odk.collect.android.injection.DaggerUtils
+import org.odk.collect.android.projects.ProjectsDataService
 import org.odk.collect.android.wassan.model.User
+import org.odk.collect.projects.Project
+import org.odk.collect.projects.ProjectsRepository
 import org.odk.collect.settings.SettingsProvider
 import org.odk.collect.settings.keys.MetaKeys
 import org.odk.collect.settings.keys.ProjectKeys
@@ -32,6 +36,13 @@ import javax.inject.Inject
 class LoginActivity : LocalizedActivity() {
     @Inject
     lateinit var settingsProvider: SettingsProvider
+
+    @Inject
+    lateinit var projectsRepository: ProjectsRepository
+
+    @Inject
+    lateinit var projectsDataService: ProjectsDataService
+
     lateinit var pd: ProgressDialog
 
     lateinit var webServerURL: String
@@ -143,9 +154,8 @@ class LoginActivity : LocalizedActivity() {
                         generalSettings.save(ProjectKeys.KEY_METADATA_EMAIL, userJson.getString("email"))
                         generalSettings.save(ProjectKeys.KEY_SERVER_URL, serverUrl)
                        // val generalSettingss = settingsProvider.getUnprotectedSettings();
+                        initProject()
                         launchDashboard()
-
-
                     }else{
                         if (obj.has("errors")) {
                             val errors = obj.getJSONObject("errors")
@@ -202,6 +212,69 @@ class LoginActivity : LocalizedActivity() {
         settingsProvider.getMetaSettings().save(MetaKeys.IS_LOGIN, true)
         ActivityUtils.startActivityAndCloseAllOthers(this, MainActivity::class.java)
     }
+
+    private fun initProject() {
+        val gson = Gson()
+        val userJson = settingsProvider.getMetaSettings().getString(MetaKeys.KEY_USER)
+        val user: User = gson.fromJson(userJson, User::class.java)
+        // val projectsArray: JsonArray = JsonParser.parseString(userJson).asJsonObject.getAsJsonArray("projects")
+
+        val root = JsonParser.parseString(userJson).asJsonObject
+
+        val projectsJsonString = root.get("projects").asString // Step 1
+        val projectsArray = JsonParser.parseString(projectsJsonString).asJsonArray // Step 2
+
+        val projects = projectsRepository.getAll()
+        //projectsRepository.deleteAll()
+        // Parse the JSON string representing projects into a JsonArray
+
+        projectsArray.forEach { projectElement ->
+            val projectObject = projectElement.asJsonObject
+            val projectId = projectObject.get("central_project_id").asString
+            val projectName = projectObject.get("project_name").asString
+            val projectIcon = projectObject.get("icon").asString
+            val projectColor = projectObject.get("color").asString
+            val serverAddress = projectObject.get("server_url").asString
+            val centralUserToken = projectObject.get("central_user_token").asString
+            val serverUrl=serverAddress+"/key/"+centralUserToken+"/projects/"+projectId
+
+
+            projectsRepository.save(
+                Project.Saved(
+                    projectId,
+                    projectName,
+                    projectIcon,
+                    projectColor
+                )
+            )
+
+            val generalSettings = settingsProvider.getUnprotectedSettings(projectId)
+            generalSettings.save(ProjectKeys.KEY_METADATA_USERNAME, user.username)
+            generalSettings.save(ProjectKeys.KEY_USERNAME, user.username)
+            generalSettings.save(ProjectKeys.KEY_METADATA_PHONENUMBER, user.phone)
+            generalSettings.save(ProjectKeys.KEY_METADATA_EMAIL, user.email)
+            generalSettings.save(ProjectKeys.KEY_SERVER_URL, serverUrl)
+
+        }
+        val currrentProject = settingsProvider.getMetaSettings().getString(MetaKeys.CURRENT_PROJECT_ID)
+        if (currrentProject == null) {
+            val uuid = user.projectId
+            val projectName=user.projectName
+            val projectIcon = user.projectIcon
+            val projectColor = user.projectColor
+            projectsRepository.save(
+                Project.Saved(
+                    uuid,
+                    projectName,
+                    projectIcon,
+                    projectColor
+                )
+            )
+            projectsDataService.setCurrentProject(uuid)
+        }
+
+    }
+
 
     private fun showSnackbar(stringSnackbar: String?) {
         Snackbar.make(

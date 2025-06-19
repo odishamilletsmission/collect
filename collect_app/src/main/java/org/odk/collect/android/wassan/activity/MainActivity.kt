@@ -26,6 +26,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import org.odk.collect.android.R
 import org.odk.collect.android.activities.ActivityUtils
+import org.odk.collect.android.activities.FirstLaunchActivity
 import org.odk.collect.android.activities.FormDownloadListActivity
 import org.odk.collect.android.application.MapboxClassInstanceCreator
 import org.odk.collect.android.formmanagement.FormFillingIntentFactory
@@ -99,7 +100,7 @@ class MainActivity : LocalizedActivity(), NavigationView.OnNavigationItemSelecte
         if (!settingsProvider.getMetaSettings().getBoolean(MetaKeys.IS_LOGIN)) {
             ActivityUtils.startActivityAndCloseAllOthers(this, LoginActivity::class.java)
         } else {
-            initProject()
+           // initProject()
         }
     }
     private fun initUIComponents() {
@@ -123,7 +124,7 @@ class MainActivity : LocalizedActivity(), NavigationView.OnNavigationItemSelecte
         val projectsJsonString = root.get("projects").asString // Step 1
         val projectsArray = JsonParser.parseString(projectsJsonString).asJsonArray // Step 2
 
-
+        val projects = projectsRepository.getAll()
         projectsRepository.deleteAll()
         // Parse the JSON string representing projects into a JsonArray
 
@@ -171,6 +172,7 @@ class MainActivity : LocalizedActivity(), NavigationView.OnNavigationItemSelecte
             )
             projectsDataService.setCurrentProject(uuid)
         }
+
     }
     private fun initMapbox() {
         if (MapboxClassInstanceCreator.isMapboxAvailable()) {
@@ -294,7 +296,7 @@ class MainActivity : LocalizedActivity(), NavigationView.OnNavigationItemSelecte
             finish()
         } else {
             // Caller wants to view/edit a form, so launch FormFillingActivity
-            formLauncher.launch(FormFillingIntentFactory.newInstanceIntent(this, formUri))
+            formLauncher.launch(FormFillingIntentFactory.newFormIntent(this, formUri))
         }
     }
     override fun onNavigationItemSelected(item: MenuItem): Boolean {

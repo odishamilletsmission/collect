@@ -17,6 +17,7 @@ import org.odk.collect.android.R
 import org.odk.collect.android.activities.AppListActivity
 import org.odk.collect.android.activities.FormMapActivity
 import org.odk.collect.android.activities.InstanceChooserList
+import org.odk.collect.android.formentry.FormOpeningMode
 import org.odk.collect.android.formlists.blankformlist.BlankFormListViewModel
 import org.odk.collect.android.formlists.blankformlist.OnFormItemClickListener
 import org.odk.collect.android.injection.DaggerUtils
@@ -200,8 +201,8 @@ class DashboardFragment : Fragment(), OnFormItemClickListener,FormActionListener
         formLauncher.launch(
             Intent(requireActivity(), CustomInstanceChooserList::class.java).apply {
                 putExtra(
-                    ApplicationConstants.BundleKeys.FORM_MODE,
-                    ApplicationConstants.FormModes.EDIT_SAVED,
+                    FormOpeningMode.FORM_MODE_KEY,
+                    FormOpeningMode.EDIT_SAVED
                 )
                 putExtra("FILTER_ID", formId)
             }
@@ -221,8 +222,8 @@ class DashboardFragment : Fragment(), OnFormItemClickListener,FormActionListener
         startActivity(
             Intent(requireActivity(), InstanceChooserList::class.java).apply {
                 putExtra(
-                    ApplicationConstants.BundleKeys.FORM_MODE,
-                    ApplicationConstants.FormModes.VIEW_SENT
+                    FormOpeningMode.FORM_MODE_KEY,
+                    FormOpeningMode.VIEW_SENT
                 )
                 putExtra("FILTER_ID", formId)
             }
