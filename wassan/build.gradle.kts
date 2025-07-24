@@ -1,6 +1,7 @@
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.kotlinKapt)
 }
 
 android {
@@ -33,6 +34,28 @@ android {
 }
 
 dependencies {
+    implementation(project(":shared"))
+    implementation(project(":icons"))
+    implementation(project(":strings"))
+    implementation(project(":location"))
+    implementation(project(":androidshared"))
+    implementation(project(":external-app"))
+    implementation(project(":async"))
+    implementation(project(":analytics"))
+    implementation(project(":permissions"))
+    implementation(project(":settings"))
+    implementation(project(":maps"))
+    implementation(project(":material"))
+    implementation(project(":web-page"))
+    implementation(project(":projects"))
+    implementation(libs.kotlinStdlib)
+    implementation(libs.androidxAppcompat)
+    implementation(libs.androidxLifecycleLivedataKtx)
+    implementation(libs.timber)
+    implementation(libs.playServicesLocation)
+    implementation(libs.androidxFragmentKtx)
+    implementation(libs.dagger)
+    kapt(libs.daggerCompiler)
 
     implementation(libs.androidxCoreKtx)
     implementation(libs.androidxAppcompat)

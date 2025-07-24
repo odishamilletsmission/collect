@@ -3,7 +3,7 @@
 
     <application>
         <activity
-            android:name=".SplashActivity"
+            android:name=".activity.SplashActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="true"
             android:label="@string/title_activity_splash"
