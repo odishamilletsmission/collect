@@ -50,7 +50,6 @@ import java.util.HashMap;
 import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
-@SuppressWarnings("PMD.DoubleBraceInitialization")
 public class FormEntryViewModelTest {
 
     private FormEntryViewModel viewModel;

@@ -56,3 +56,4 @@ robolectric-deps/
 **/robolectric-deps.properties
 
 .local-m2
+apks
