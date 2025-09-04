@@ -487,7 +487,7 @@ abstract class EntitiesRepositoryTest {
     @Test
     fun `#getByIndex returns null when the list does not exist`() {
         val repository = buildSubject()
-        assertThat(repository.query("wine", Query.Eq("i.$ROW_ID", (0 + 1).toString())), equalTo(null))
+        assertThat(repository.getByIndex("wine", 0), equalTo(null))
     }
 
     @Test
@@ -495,7 +495,7 @@ abstract class EntitiesRepositoryTest {
         val repository = buildSubject()
         repository.addList("wine")
 
-        assertThat(repository.query("wine", Query.Eq("i.$ROW_ID", (0 + 1).toString())), equalTo(null))
+        assertThat(repository.getByIndex("wine", 0), equalTo(null))
     }
 
     @Test

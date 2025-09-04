@@ -32,11 +32,21 @@ class SplashActivity : LocalizedActivity() {
         }
 
         // Delay before redirecting (3 seconds)
-        Handler(Looper.getMainLooper()).postDelayed({
+        /*Handler(Looper.getMainLooper()).postDelayed({
             val nextActivity = if (isUserLoggedIn()) MainActivity::class.java else LoginActivity::class.java
             startActivity(Intent(this, nextActivity))
             finish()
-        }, 3000)
+        }, 3000)*/
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            val nextActivity = if (isUserLoggedIn()) {
+                MainActivity::class.java
+            } else {
+                LoginActivity::class.java
+            }
+            startActivity(Intent(this, nextActivity))
+            finish()
+        }, 2000)
     }
 
     private fun isUserLoggedIn(): Boolean {

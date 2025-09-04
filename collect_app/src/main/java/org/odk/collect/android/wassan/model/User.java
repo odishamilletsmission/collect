@@ -1,21 +1,21 @@
 package org.odk.collect.android.wassan.model;
 
-public class User {
-    private String userId,username,password,token,projectId,projectName,projectColor,projectIcon, email,fullname ,phone,position,district,block,gp,roleId, photo;
-    private String projects;
+import org.odk.collect.android.wassan.app.UserProject;
+import org.odk.collect.projects.Project;
 
+import java.util.List;
+
+public class User {
+    private Integer userId,district,block,gp,roleId;
+    private String username,email,fullname ,phone,position, photo;
+    private List<UserProject> userProjects;
+    private UserProject defaultProject;
     public User(){
 
     }
-    public User(String userId, String username,String password, String token,String projectId,String projectName, String projectColor,String projectIcon,String email, String fullname, String phone, String position, String district, String block, String gp, String roleId, String photo,String projects) {
+    public User(Integer userId, String username,String email, String fullname, String phone, String position, Integer district, Integer block, Integer gp, Integer roleId, String photo,List<UserProject> userProjects, UserProject defaultProject) {
         this.userId = userId;
         this.username = username;
-        this.password = password;
-        this.token = token;
-        this.projectId = projectId;
-        this.projectName = projectName;
-        this.projectColor = projectColor;
-        this.projectIcon = projectIcon;
         this.email = email;
         this.fullname = fullname;
         this.phone = phone;
@@ -25,16 +25,56 @@ public class User {
         this.gp=gp;
         this.roleId = roleId;
         this.photo = photo;
-        this.projects = projects;
+        this.userProjects = userProjects;
+        this.defaultProject = defaultProject;
     }
 
-
-    public String getUserId() {
+    public Integer getUserId() {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(Integer userId) {
         this.userId = userId;
+    }
+
+    public UserProject getDefaultProject() {
+        return defaultProject;
+    }
+
+    public void setDefaultProject(UserProject defaultProject) {
+        this.defaultProject = defaultProject;
+    }
+
+    public Integer getDistrict() {
+        return district;
+    }
+
+    public void setDistrict(Integer district) {
+        this.district = district;
+    }
+
+    public Integer getBlock() {
+        return block;
+    }
+
+    public void setBlock(Integer block) {
+        this.block = block;
+    }
+
+    public Integer getGp() {
+        return gp;
+    }
+
+    public void setGp(Integer gp) {
+        this.gp = gp;
+    }
+
+    public Integer getRoleId() {
+        return roleId;
+    }
+
+    public void setRoleId(Integer roleId) {
+        this.roleId = roleId;
     }
 
     public String getUsername() {
@@ -45,53 +85,9 @@ public class User {
         this.username = username;
     }
 
-    public String getPassword() {
-        return password;
-    }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
 
-    public String getToken() {
-        return token;
-    }
 
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public String getProjectId() {
-        return projectId;
-    }
-
-    public void setProjectId(String projectId) {
-        this.projectId = projectId;
-    }
-
-    public String getProjectName() {
-        return projectName;
-    }
-
-    public void setProjectName(String projectName) {
-        this.projectName = projectName;
-    }
-
-    public String getProjectColor() {
-        return projectColor;
-    }
-
-    public void setProjectColor(String projectColor) {
-        this.projectColor = projectColor;
-    }
-
-    public String getProjectIcon() {
-        return projectIcon;
-    }
-
-    public void setProjectIcon(String projectIcon) {
-        this.projectIcon = projectIcon;
-    }
 
     public String getEmail() {
         return email;
@@ -125,38 +121,6 @@ public class User {
         this.position = position;
     }
 
-    public String getDistrict() {
-        return district;
-    }
-
-    public void setDistrict(String district) {
-        this.district = district;
-    }
-
-    public String getBlock() {
-        return block;
-    }
-
-    public void setBlock(String block) {
-        this.block = block;
-    }
-
-    public String getGp() {
-        return gp;
-    }
-
-    public void setGp(String gp) {
-        this.gp = gp;
-    }
-
-    public String getRoleId() {
-        return roleId;
-    }
-
-    public void setRoleId(String roleId) {
-        this.roleId = roleId;
-    }
-
     public String getPhoto() {
         return photo;
     }
@@ -165,11 +129,11 @@ public class User {
         this.photo = photo;
     }
 
-    public String getProjects() {
-        return projects;
+    public List<UserProject> getUserProjects() {
+        return userProjects;
     }
 
-    public void setProjects(String projects) {
-        this.projects = projects;
+    public void setUserProjects(List<UserProject> userProjects) {
+        this.userProjects = userProjects;
     }
 }

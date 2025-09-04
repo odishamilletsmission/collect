@@ -1,33 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/question_widget_container"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_container"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:paddingHorizontal="@dimen/margin_standard"
-    android:paddingVertical="@dimen/margin_extra_small"
-    android:orientation="vertical">
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="?attr/colorSurface">
 
-    <org.odk.collect.android.formentry.questions.AudioVideoImageTextLabel
-        android:id="@+id/question_label"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <FrameLayout
-        android:id="@+id/help_text"
+    <LinearLayout
+        android:id="@+id/question_widget_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/margin_standard">
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/margin_standard"
+        android:paddingVertical="@dimen/margin_extra_small">
 
-        <include layout="@layout/help_layout" />
+        <org.odk.collect.android.formentry.questions.AudioVideoImageTextLabel
+            android:id="@+id/question_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
-    </FrameLayout>
+        <FrameLayout
+            android:id="@+id/help_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/margin_standard">
+            <include layout="@layout/help_layout" />
+        </FrameLayout>
 
-    <RelativeLayout
-        android:id="@+id/answer_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        <RelativeLayout
+            android:id="@+id/answer_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
-    </RelativeLayout>
+        <include layout="@layout/question_error_layout" />
+    </LinearLayout>
 
-    <include layout="@layout/question_error_layout" />
-</LinearLayout>
+</com.google.android.material.card.MaterialCardView>

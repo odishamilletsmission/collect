@@ -1,3 +1,4 @@
+# Don't warn on certain common libraries
 -dontwarn com.google.**
 -dontwarn au.com.bytecode.**
 -dontwarn org.joda.time.**
@@ -9,23 +10,33 @@
 -dontwarn android.content.res.**
 -dontwarn org.kxml2.io.**
 
+# Keep classes related to actions and fragments
 -keep class org.odk.collect.android.logic.actions.**
 -keep class android.support.v7.widget.** { *; }
 -keep class org.mp4parser.boxes.** { *; }
--keep class * extends androidx.fragment.app.Fragment{}
+-keep class * extends androidx.fragment.app.Fragment { *; }
 
--keep class * implements org.javarosa.core.util.externalizable.Externalizable{}
+# Keep all classes implementing Externalizable
+-keep class * implements org.javarosa.core.util.externalizable.Externalizable { *; }
 -keep class org.javarosa.core.model.instance.geojson.GeojsonFeature { *; }
 -keep class org.javarosa.core.model.instance.geojson.GeojsonGeometry { *; }
 
+# Don't obfuscate (optional but recommended for libraries)
 -dontobfuscate
 
-# recommended okhttp rules
-# https://github.com/square/okhttp#r8--proguard
--dontwarn javax.annotation.**
--keepnames class okhttp3.internal.publicsuffix.PublicSuffixDatabase
--dontwarn org.codehaus.mojo.animal_sniffer.*
--dontwarn okhttp3.internal.platform.ConscryptPlatform
+# Keep Retrofit and Gson related classes
+-keep class retrofit2.** { *; }
+-keep interface retrofit2.** { *; }
 
-# Keep line numbers for Crashlytics https://stackoverflow.com/questions/38529304/android-crashlytics-sending-incorrect-line-number
+# Keep your custom data models and the ApiService interface
+-keep class org.odk.collect.android.wassan.app.LoginResponse { *; }
+-keep class org.odk.collect.android.wassan.app.User { *; }
+-keep class org.odk.collect.android.wassan.app.UserProject { *; }
+-keep interface org.odk.collect.android.wassan.app.ApiService { *; }
+
+# Keep Gson library classes
+-keep class com.google.gson.** { *; }
+-dontwarn com.google.gson.**
+
+# Keep line numbers for Crashlytics
 -keepattributes SourceFile,LineNumberTable

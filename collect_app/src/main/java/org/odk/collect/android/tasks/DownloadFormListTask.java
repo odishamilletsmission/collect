@@ -33,6 +33,7 @@ import org.odk.collect.android.injection.DaggerUtils;
 import org.odk.collect.android.listeners.FormListDownloaderListener;
 import org.odk.collect.android.projects.ProjectsDataService;
 import org.odk.collect.android.utilities.WebCredentialsUtils;
+import org.odk.collect.android.wassan.app.UserProject;
 import org.odk.collect.android.wassan.model.User;
 import org.odk.collect.forms.FormSourceException;
 import org.odk.collect.settings.SettingsProvider;
@@ -107,51 +108,44 @@ public class DownloadFormListTask extends AsyncTask<Void, String, Pair<List<Serv
     }
     //add by niranjan
     private void processAndFilterFormList(List<ServerFormDetails> formList) {
+        if (formList == null || formList.isEmpty()) return;
+
+        String userJson = settingsProvider.getMetaSettings().getString(MetaKeys.KEY_USER);
+        String currentProjectId = settingsProvider.getMetaSettings().getString(MetaKeys.CURRENT_PROJECT_ID);
+        if (userJson == null || currentProjectId == null) return;
+
         Gson gson = new Gson();
-        String jsonUser = settingsProvider.getMetaSettings().getString(MetaKeys.KEY_USER);
+        JsonObject root = JsonParser.parseString(userJson).getAsJsonObject();
+        JsonArray projectsJson = root.getAsJsonArray("userProjects");
 
-        // Directly parse the JSON string into a JsonObject using Gson
-        JsonObject jsonObject = gson.fromJson(jsonUser, JsonObject.class);
+        if (projectsJson == null || projectsJson.size() == 0) return;
 
-        // Extract the "projects" string, and then parse it as a JsonArray
-        String projectsJsonString = jsonObject.getAsJsonPrimitive("projects").getAsString();
-        JsonArray projectsArray = gson.fromJson(projectsJsonString, JsonArray.class);
-
-        String currentProject = settingsProvider.getMetaSettings().getString(MetaKeys.CURRENT_PROJECT_ID);
+        // Find the matching UserProject for the current project
         JsonArray assignFormsArray = null;
-
-        // Find the project matching the currentProject ID
-        for (int i = 0; i < projectsArray.size(); i++) {
-            JsonObject project = projectsArray.get(i).getAsJsonObject();
-            String centralProjectId = project.get("central_project_id").getAsString();  // Get as String
-
-            // If the central_project_id matches currentProject, get the assign_forms
-            if (centralProjectId.equals(currentProject)) {
-                String assignFormsString = project.get("assign_forms").getAsString();
-
-                // Parse the assign_forms string to a JsonArray
-                assignFormsArray = gson.fromJson(assignFormsString, JsonArray.class);
-
-                // Exit the loop once the relevant project is found
+        for (JsonElement element : projectsJson) {
+            UserProject project = gson.fromJson(element, UserProject.class);
+            if (currentProjectId.equals(project.getCentral_project_id())) {
+                assignFormsArray = gson.toJsonTree(project.getAssign_forms()).getAsJsonArray();
                 break;
             }
         }
 
-        // If the assignFormsArray is valid, filter the formList based on form IDs
-        if (assignFormsArray != null && !assignFormsArray.isEmpty()) {
-            // Convert the JsonArray to a List of form IDs
-            List<String> assignFormIds = new ArrayList<>();
-            for (JsonElement element : assignFormsArray) {
-                // Ensure the element is a valid String
-                if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
-                    assignFormIds.add(element.getAsString());
-                }
-            }
+        if (assignFormsArray == null || assignFormsArray.size() == 0) return;
 
-            // Remove forms from formList where formId is not in assignFormIds
-            formList.removeIf(form -> form.getFormId() == null || !assignFormIds.contains(form.getFormId()));
+        // Extract assign form IDs
+        List<String> assignFormIds = new ArrayList<>();
+        for (JsonElement element : assignFormsArray) {
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
+                assignFormIds.add(element.getAsString());
+            }
         }
+
+        if (assignFormIds.isEmpty()) return;
+
+        // Filter formList based on assigned form IDs
+        formList.removeIf(form -> form.getFormId() == null || !assignFormIds.contains(form.getFormId()));
     }
+
 
     @Override
     protected void onPostExecute(Pair<List<ServerFormDetails>, FormSourceException> result) {

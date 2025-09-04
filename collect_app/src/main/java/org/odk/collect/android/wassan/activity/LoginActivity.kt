@@ -9,27 +9,31 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.android.volley.DefaultRetryPolicy
-import com.android.volley.Response
-import com.android.volley.VolleyError
-import com.android.volley.toolbox.StringRequest
-import com.android.volley.toolbox.Volley
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
 import com.google.gson.Gson
 import com.google.gson.JsonParser
-import org.json.JSONObject
 import org.odk.collect.android.R
 import org.odk.collect.android.activities.ActivityUtils
 import org.odk.collect.android.injection.DaggerUtils
 import org.odk.collect.android.projects.ProjectsDataService
+import org.odk.collect.android.wassan.app.ApiClient
+import org.odk.collect.android.wassan.app.LoginResponse
+import org.odk.collect.android.wassan.app.UserProject
 import org.odk.collect.android.wassan.model.User
 import org.odk.collect.projects.Project
 import org.odk.collect.projects.ProjectsRepository
 import org.odk.collect.settings.SettingsProvider
 import org.odk.collect.settings.keys.MetaKeys
+import org.odk.collect.settings.keys.MetaKeys.CURRENT_PROJECT_ID
 import org.odk.collect.settings.keys.ProjectKeys
 import org.odk.collect.strings.localization.LocalizedActivity
-import timber.log.Timber
+import retrofit2.Call
+import retrofit2.Callback
+
 import javax.inject.Inject
 
 
@@ -85,6 +89,39 @@ class LoginActivity : LocalizedActivity() {
         pd = ProgressDialog(this)
         pd.setCanceledOnTouchOutside(false)
         loginButton.setOnClickListener(View.OnClickListener { loginRequest() })
+
+        val clapCard = findViewById<MaterialCardView>(R.id.cardLoginWithClap)
+
+        clapCard.setOnClickListener {
+            showClapLoginDialog()
+        }
+    }
+
+    private fun showClapLoginDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_clap_login, null)
+        val emailEt = dialogView.findViewById<TextInputEditText>(R.id.clapEmail)
+        val passwordEt = dialogView.findViewById<TextInputEditText>(R.id.clapPassword)
+
+        MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+            .also { dialog ->
+                dialogView.findViewById<MaterialButton>(R.id.btnClapLogin).setOnClickListener {
+                    val email = emailEt.text.toString()
+                    val password = passwordEt.text.toString()
+
+                    if (email.isBlank() || password.isBlank()) {
+                        Toast.makeText(this, "Enter both email and password", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+
+                    // TODO: Integrate CLAP API login or ODK launch
+                    Toast.makeText(this, "Logging in as $email", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                }
+                dialog.show()
+            }
     }
 
     private fun loginRequest() {
@@ -92,119 +129,63 @@ class LoginActivity : LocalizedActivity() {
         val password1 = findViewById<EditText>(R.id.editTextPassword).text.toString()
         pd.setMessage("Signing In . . .")
         pd.show()
-        webServerURL = getString(org.odk.collect.strings.R.string.api_server_url)
 
-        //using volley request
+        val api = ApiClient.create(this)
 
-        val request = object : StringRequest(
-            Method.POST, webServerURL+"login",
-            Response.Listener { response ->
-                // Handle successful login response
-                try {
-                    //converting response to json object
-                    val obj: JSONObject = JSONObject(response)
-                    if (obj.getBoolean("status")) {
-                        /*Toast.makeText(
-                            applicationContext,
-                            obj.getString("message"),
-                            Toast.LENGTH_SHORT
-                        ).show()*/
+        val call = api.login(username1, password1)
+        call.enqueue(object : Callback<LoginResponse> {
+            override fun onResponse(call: Call<LoginResponse>, response: retrofit2.Response<LoginResponse>) {
+                pd.dismiss()
+                if (response.isSuccessful && response.body()?.status == true) {
+                    val userJson = response.body()?.user ?: return
+                    val defaultProjectJson = userJson.default_project
 
-                        //getting the user from the response
-                        val userJson = obj.getJSONObject("user")
-                        val defaultProjectJson=userJson.getJSONObject("default_project")
-                        if (defaultProjectJson.length() == 0) {
-                            Toast.makeText(applicationContext, "No default project found", Toast.LENGTH_SHORT).show()
-                            pd.dismiss()
-                            return@Listener
-                        }
-                        val serverUrl=defaultProjectJson.getString("server_url")+"/key/"+defaultProjectJson.getString("central_user_token")+"/projects/"+defaultProjectJson.getString("central_project_id")
-                        Timber.tag("Tag").d("user: %s", userJson.toString(4))
-
-                        //creating a new user object
-                        val user = User(
-                            userJson.getString("id"),
-                            userJson.getString("username"),
-                            password1,
-                            defaultProjectJson.getString("central_user_token"),
-                            defaultProjectJson.getString("central_project_id"),
-                            defaultProjectJson.getString("project_name"),
-                            defaultProjectJson.getString("color"),
-                            defaultProjectJson.getString("icon"),
-                            userJson.getString("email"),
-                            userJson.getString("fullname"),
-                            userJson.getString("phone"),
-                            userJson.getString("position"),
-                            userJson.getString("district_id"),
-                            userJson.getString("block_id"),
-                            userJson.getString("gp_id"),
-                            userJson.getString("user_group_id"),
-                            userJson.getString("image"),
-                            userJson.getString("user_project"),
-                        )
-
-                        //storing the user in shared preferences
-                        val gson = Gson()
-                        val jsonuser = gson.toJson(user)
-                        val generalSettings = settingsProvider.getUnprotectedSettings(defaultProjectJson.getString("central_project_id"))
-                        settingsProvider.getMetaSettings().save(MetaKeys.KEY_USER, jsonuser)
-                        generalSettings.save(ProjectKeys.KEY_METADATA_USERNAME, username1)
-                        generalSettings.save(ProjectKeys.KEY_USERNAME, username1)
-                        generalSettings.save(ProjectKeys.KEY_METADATA_PHONENUMBER, userJson.getString("phone"))
-                        generalSettings.save(ProjectKeys.KEY_METADATA_EMAIL, userJson.getString("email"))
-                        generalSettings.save(ProjectKeys.KEY_SERVER_URL, serverUrl)
-                       // val generalSettingss = settingsProvider.getUnprotectedSettings();
-                        initProject()
-                        launchDashboard()
-                    }else{
-                        if (obj.has("errors")) {
-                            val errors = obj.getJSONObject("errors")
-                            if (errors.has("username")) {
-                                username.requestFocus()
-                                username.error = errors.getString("username")
-                            }
-                            if (errors.has("password")) {
-                                //password.requestFocus();
-                                password.error = errors.getString("password")
-                            }
-                        }
-
-                        // error
-                        pd.dismiss()
-                        showSnackbar(obj.getString("message"))
+                    if (defaultProjectJson == null || defaultProjectJson.central_project_id.isNullOrEmpty()) {
+                        Toast.makeText(applicationContext, "No project assigned you", Toast.LENGTH_SHORT).show()
+                        return
                     }
 
-                }catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            },
-            Response.ErrorListener { error ->
+                    val serverUrl = "${defaultProjectJson.server_url}/key/${defaultProjectJson.central_user_token}/projects/${defaultProjectJson.central_project_id}"
+                    val user = User(
+                        userJson.id,
+                        userJson.username,
+                        userJson.email,
+                        userJson.fullname,
+                        userJson.phone,
+                        userJson.position,
+                        userJson.district_id,
+                        userJson.block_id,
+                        userJson.gp_id,
+                        userJson.user_group_id,
+                        userJson.image,
+                        userJson.user_project,
+                        defaultProjectJson
+                    )
 
-                // error
-                pd.dismiss()
-                // Handle error
-                if (error.networkResponse != null && error.networkResponse.data != null) {
-                    val error1 = VolleyError(String(error.networkResponse.data))
-                    //Log.d("error", error1.toString());
-                    Toast.makeText(applicationContext, error.message, Toast.LENGTH_SHORT).show()
+                    val gson = Gson()
+                    val jsonuser = gson.toJson(user)
+                    val generalSettings = settingsProvider.getUnprotectedSettings(defaultProjectJson.central_project_id)
+                    settingsProvider.getMetaSettings().save(MetaKeys.KEY_USER, jsonuser)
+                    generalSettings.save(ProjectKeys.KEY_METADATA_USERNAME, username1)
+                    generalSettings.save(ProjectKeys.KEY_USERNAME, username1)
+                    generalSettings.save(ProjectKeys.KEY_METADATA_PHONENUMBER, userJson.phone)
+                    generalSettings.save(ProjectKeys.KEY_METADATA_EMAIL, userJson.email)
+                    generalSettings.save(ProjectKeys.KEY_SERVER_URL, serverUrl)
+
+                    initProject()
+                    launchDashboard()
+
+                } else {
+                    val msg = response.body()?.message ?: "Login failed"
+                    showSnackbar(msg)
                 }
-            }) {
-            override fun getParams(): Map<String, String> {
-                val params = HashMap<String, String>()
-                params["username"] = username1
-                params["password"] = password1
-                return params
             }
-        }
-        request.setRetryPolicy(
-            DefaultRetryPolicy(
-                30000,  // 30 sec
-                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-            )
-        )
-        // Add the request to the RequestQueue
-        Volley.newRequestQueue(this).add(request)
+
+            override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
+                pd.dismiss()
+                Toast.makeText(applicationContext, t.localizedMessage ?: "Error", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     private fun launchDashboard() {
@@ -214,28 +195,27 @@ class LoginActivity : LocalizedActivity() {
     }
 
     private fun initProject() {
+        settingsProvider.getMetaSettings().save(CURRENT_PROJECT_ID, null)
         val gson = Gson()
         val userJson = settingsProvider.getMetaSettings().getString(MetaKeys.KEY_USER)
-        val user: User = gson.fromJson(userJson, User::class.java)
+        //val user: User = gson.fromJson(userJson, User::class.java)
         // val projectsArray: JsonArray = JsonParser.parseString(userJson).asJsonObject.getAsJsonArray("projects")
 
         val root = JsonParser.parseString(userJson).asJsonObject
 
-        val projectsJsonString = root.get("projects").asString // Step 1
-        val projectsArray = JsonParser.parseString(projectsJsonString).asJsonArray // Step 2
+        val projectsJson = root.get("userProjects").asJsonArray // Step 1
+        val userProjects = projectsJson.map { gson.fromJson(it, UserProject::class.java) }
 
-        val projects = projectsRepository.getAll()
-        //projectsRepository.deleteAll()
-        // Parse the JSON string representing projects into a JsonArray
-
-        projectsArray.forEach { projectElement ->
-            val projectObject = projectElement.asJsonObject
-            val projectId = projectObject.get("central_project_id").asString
-            val projectName = projectObject.get("project_name").asString
-            val projectIcon = projectObject.get("icon").asString
-            val projectColor = projectObject.get("color").asString
-            val serverAddress = projectObject.get("server_url").asString
-            val centralUserToken = projectObject.get("central_user_token").asString
+        val defaultProjectJson = root.get("defaultProject").asJsonObject
+        val defaultProject = gson.fromJson(defaultProjectJson, UserProject::class.java)
+        projectsRepository.deleteAll();
+        userProjects.forEach { projectObject ->
+            val projectId = projectObject.central_project_id
+            val projectName = projectObject.project_name
+            val projectIcon = projectObject.icon
+            val projectColor = projectObject.color
+            val serverAddress = projectObject.server_url
+            val centralUserToken = projectObject.central_user_token
             val serverUrl=serverAddress+"/key/"+centralUserToken+"/projects/"+projectId
 
 
@@ -248,30 +228,30 @@ class LoginActivity : LocalizedActivity() {
                 )
             )
 
-            val generalSettings = settingsProvider.getUnprotectedSettings(projectId)
+            /*val generalSettings = settingsProvider.getUnprotectedSettings(projectId)
             generalSettings.save(ProjectKeys.KEY_METADATA_USERNAME, user.username)
             generalSettings.save(ProjectKeys.KEY_USERNAME, user.username)
             generalSettings.save(ProjectKeys.KEY_METADATA_PHONENUMBER, user.phone)
             generalSettings.save(ProjectKeys.KEY_METADATA_EMAIL, user.email)
-            generalSettings.save(ProjectKeys.KEY_SERVER_URL, serverUrl)
+            generalSettings.save(ProjectKeys.KEY_SERVER_URL, serverUrl)*/
 
         }
-        val currrentProject = settingsProvider.getMetaSettings().getString(MetaKeys.CURRENT_PROJECT_ID)
-        if (currrentProject == null) {
-            val uuid = user.projectId
-            val projectName=user.projectName
-            val projectIcon = user.projectIcon
-            val projectColor = user.projectColor
-            projectsRepository.save(
-                Project.Saved(
-                    uuid,
-                    projectName,
-                    projectIcon,
-                    projectColor
-                )
+
+        //set current project
+        val uuid = defaultProject.central_project_id
+        val projectName=defaultProject.project_name
+        val projectIcon = defaultProject.icon
+        val projectColor = defaultProject.color
+        projectsRepository.save(
+            Project.Saved(
+                uuid,
+                projectName,
+                projectIcon,
+                projectColor
             )
-            projectsDataService.setCurrentProject(uuid)
-        }
+        )
+        projectsDataService.setCurrentProject(uuid)
+
 
     }
 

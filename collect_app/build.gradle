@@ -231,6 +231,9 @@ configurations.all {
 }
 
 dependencies {
+    implementation libs.androidMaterial
+    implementation libs.activity
+    implementation libs.constraintlayout
     coreLibraryDesugaring libs.desugar
 
     implementation project(':shared')
@@ -270,8 +273,6 @@ dependencies {
     implementation project(':db')
     implementation project(':open-rosa')
     implementation project(':mobile-device-management')
-    //niranjan added
-    implementation project(":wassan")
 
     if (getSecrets().getProperty('MAPBOX_DOWNLOADS_TOKEN', '') != '') {
         implementation project(':mapbox')
@@ -345,7 +346,8 @@ dependencies {
     implementation libs.splashscreen
     implementation libs.volley
     implementation libs.glide
-
+    implementation libs.retrofit
+    implementation libs.converter.gson
 
 
     testImplementation project(':forms-test')
