@@ -1,6 +1,7 @@
 package org.odk.collect.settings.keys
 
 object ProjectKeys {
+
     // server_preferences.xml
     const val KEY_PROTOCOL = "protocol"
 

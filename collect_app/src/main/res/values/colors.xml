@@ -24,4 +24,6 @@
     <color name="colorOnSurfaceInverse">#E1F4FF</color>
 
     <bool name="lightStatusBar">true</bool>
+    <color name="colorSurfaceLight">#ffffff</color>
+    <color name="colorSurfaceDark">#001117</color>
 </resources>

@@ -339,7 +339,7 @@
     <string name="edit_value">Edit value</string>
     <!-- Displayed in form questions for which the user needs to select a value -->
     <string name="no_value_selected">No value selected</string>
-    <string name="selected">Selected: </string>
+    <string name="selected_title">Selected: </string>
 
     <string name="trigger">OK. Please continue.</string>
 
@@ -728,6 +728,9 @@
     <string name="newer_version_of_a_form_info">This is an update to a form you have</string>
     <string name="form_update_error">Form update failed</string>
     <string name="form_update_succeeded">Form update succeeded</string>
+
+    <!-- Text for notification shown while syncing forms with the server -->
+    <string name="form_update_notification_title">Syncing forms</string>
 
     <string name="load_remote_form_error">Form list download failed</string>
 
