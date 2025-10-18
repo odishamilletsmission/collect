@@ -20,15 +20,14 @@ class SettingsBarcodeScannerViewFactory(
         activity: Activity,
         lifecycleOwner: LifecycleOwner,
         qrOnly: Boolean,
-        prompt: String,
         useFrontCamera: Boolean
     ): BarcodeScannerView {
-        val factory = if (qrOnly || settings.getExperimentalOptIn(ProjectKeys.KEY_MLKIT_SCANNING)) {
-            playServicesFallbackFactory
-        } else {
+        val factory = if (settings.getExperimentalOptIn(ProjectKeys.KEY_ZXING_SCANNING)) {
             zxingFactory
+        } else {
+            playServicesFallbackFactory
         }
 
-        return factory.create(activity, lifecycleOwner, qrOnly, prompt, useFrontCamera)
+        return factory.create(activity, lifecycleOwner, qrOnly, useFrontCamera)
     }
 }

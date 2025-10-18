@@ -45,11 +45,14 @@ androidMaterial = { group = "com.google.android.material", name = "material", ve
 androidFlexbox = { group = "com.google.android.flexbox", name = "flexbox", version = "3.0.0" }
 androidxComposeBom = { group = "androidx.compose", name = "compose-bom", version = "2025.08.00" }
 androidXComposeMaterial = { group = "androidx.compose.material3", name = "material3" }
+androidXComposeMaterialIconsExtended = { group = "androidx.compose.material", name = "material-icons-extended" }
+androidXComposePreview = { group = "androidx.compose.ui", name = "ui-tooling-preview"}
+androidXComposeTooling = { group = "androidx.compose.ui", name = "ui-tooling"}
 androidXConstraintLayoutCompose = { group = "androidx.constraintlayout", name = "constraintlayout-compose", version = "1.1.1" }
 playServicesMaps = { group = "com.google.android.gms", name = "play-services-maps", version = "19.2.0" }
 playServicesLocation = { group = "com.google.android.gms", name = "play-services-location", version = "21.3.0" }
 playServicesOssLicenses = { group = "com.google.android.gms", name = "play-services-oss-licenses", version = "17.1.0" }
-mapboxAndroidSdk = { group = "com.mapbox.maps", name = "android", version = "10.16.4" } # Check if https://github.com/mapbox/mapbox-maps-android/issues/2389#issuecomment-2432018812 no longer takes place before upgrading
+mapboxAndroidSdk = { group = "com.mapbox.maps", name = "android-ndk27", version = "10.19.1" } # Check if https://github.com/mapbox/mapbox-maps-android/issues/2389#issuecomment-2432018812 no longer takes place before upgrading
 osmdroid = { group = "org.osmdroid", name = "osmdroid-android", version = "6.1.20" }
 okHttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp3" }
 okHttpTls = { group = "com.squareup.okhttp3", name = "okhttp-tls", version.ref = "okhttp3" }
@@ -60,7 +63,7 @@ danlewAndroidJoda = { group = "net.danlew", name = "android.joda", version = "2.
 rarepebbleColorpicker = { group = "com.github.martin-stone", name = "hsv-alpha-color-picker-android", version = "3.1.0" }
 commonsIo = { group = "commons-io", name = "commons-io", version = "2.5" } # Commons 2.6+ introduce java.nio usage that we can't access until our minSdkVersion >= 26 (https://developer.android.com/reference/java/io/File#toPath())
 opencsv = { group = "com.opencsv", name = "opencsv", version = "5.11.2" }
-javarosa = { group = "org.getodk", name = "javarosa", version = "5.1.0-SNAPSHOT-6fcc5e2" } # Online
+javarosa = { group = "org.getodk", name = "javarosa", version = "5.1.0" } # Online
 # javarosa = { group = "org.getodk", name = "javarosa", version = "local" } # Local
 karumiDexter = { group = "com.karumi", name = "dexter", version = "6.2.3" }
 zxingAndroidEmbedded = { group = "com.journeyapps", name = "zxing-android-embedded", version = "4.3.0" }

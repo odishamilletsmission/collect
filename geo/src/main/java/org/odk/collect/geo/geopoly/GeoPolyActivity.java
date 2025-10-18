@@ -15,6 +15,7 @@
 package org.odk.collect.geo.geopoly;
 
 import static org.odk.collect.geo.Constants.EXTRA_READ_ONLY;
+import static org.odk.collect.geo.Constants.EXTRA_RETAIN_MOCK_ACCURACY;
 import static org.odk.collect.geo.GeoActivityUtils.requireLocationPermissions;
 
 import android.content.Intent;
@@ -53,7 +54,7 @@ import org.odk.collect.maps.layers.OfflineMapLayersPickerBottomSheetDialogFragme
 import org.odk.collect.maps.layers.ReferenceLayerRepository;
 import org.odk.collect.settings.SettingsProvider;
 import org.odk.collect.strings.localization.LocalizedActivity;
-import org.odk.collect.webpage.ExternalWebPageHelper;
+import org.odk.collect.webpage.WebPageService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,7 +99,7 @@ public class GeoPolyActivity extends LocalizedActivity implements GeoPolySetting
     SettingsProvider settingsProvider;
 
     @Inject
-    ExternalWebPageHelper externalWebPageHelper;
+    WebPageService webPageService;
 
     private MapFragment map;
     private int featureId = -1;  // will be a positive featureId once map is ready
@@ -155,7 +156,7 @@ public class GeoPolyActivity extends LocalizedActivity implements GeoPolySetting
 
         getSupportFragmentManager().setFragmentFactory(new FragmentFactoryBuilder()
                 .forClass(MapFragment.class, () -> (Fragment) mapFragmentFactory.createMapFragment())
-                .forClass(OfflineMapLayersPickerBottomSheetDialogFragment.class, () -> new OfflineMapLayersPickerBottomSheetDialogFragment(getActivityResultRegistry(), referenceLayerRepository, scheduler, settingsProvider, externalWebPageHelper))
+                .forClass(OfflineMapLayersPickerBottomSheetDialogFragment.class, () -> new OfflineMapLayersPickerBottomSheetDialogFragment(getActivityResultRegistry(), referenceLayerRepository, scheduler, settingsProvider, webPageService))
                 .build()
         );
 
@@ -303,6 +304,7 @@ public class GeoPolyActivity extends LocalizedActivity implements GeoPolySetting
         map.setLongPressListener(this::onClick);
         map.setGpsLocationEnabled(true);
         map.setGpsLocationListener(this::onGpsLocation);
+        map.setRetainMockAccuracy(intent.getBooleanExtra(EXTRA_RETAIN_MOCK_ACCURACY, false));
 
         if (!map.hasCenter()) {
             if (!points.isEmpty()) {
