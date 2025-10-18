@@ -28,6 +28,7 @@ import org.odk.collect.android.R
 import org.odk.collect.android.activities.ActivityUtils
 import org.odk.collect.android.activities.FirstLaunchActivity
 import org.odk.collect.android.activities.FormDownloadListActivity
+import org.odk.collect.android.application.CollectComposeThemeProvider
 import org.odk.collect.android.application.MapboxClassInstanceCreator
 import org.odk.collect.android.formmanagement.FormFillingIntentFactory
 import org.odk.collect.android.injection.DaggerUtils
@@ -56,7 +57,7 @@ import org.odk.collect.strings.localization.LocalizedActivity
 import timber.log.Timber
 import javax.inject.Inject
 
-class MainActivity : LocalizedActivity(), NavigationView.OnNavigationItemSelectedListener,
+class MainActivity : LocalizedActivity(),CollectComposeThemeProvider, NavigationView.OnNavigationItemSelectedListener,
     OnFormSelectedListener {
     @Inject
     lateinit var settingsProvider: SettingsProvider

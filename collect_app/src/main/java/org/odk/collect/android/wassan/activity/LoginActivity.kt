@@ -7,6 +7,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
@@ -33,6 +34,7 @@ import org.odk.collect.settings.keys.ProjectKeys
 import org.odk.collect.strings.localization.LocalizedActivity
 import retrofit2.Call
 import retrofit2.Callback
+import retrofit2.Response
 
 import javax.inject.Inject
 
@@ -52,6 +54,8 @@ class LoginActivity : LocalizedActivity() {
     lateinit var webServerURL: String
     lateinit var username: EditText
     lateinit var password:EditText
+    lateinit var loginButton: MaterialButton
+    lateinit var cardLoginWithClap: MaterialCardView
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,14 +89,14 @@ class LoginActivity : LocalizedActivity() {
 
         username = findViewById<EditText>(R.id.editTextUsername)
         password = findViewById<EditText>(R.id.editTextPassword)
-        val loginButton = findViewById<Button>(R.id.loginButton)
+        loginButton = findViewById(R.id.loginButton)
+        cardLoginWithClap = findViewById(R.id.cardLoginWithClap)
+
         pd = ProgressDialog(this)
         pd.setCanceledOnTouchOutside(false)
         loginButton.setOnClickListener(View.OnClickListener { loginRequest() })
 
-        val clapCard = findViewById<MaterialCardView>(R.id.cardLoginWithClap)
-
-        clapCard.setOnClickListener {
+        cardLoginWithClap.setOnClickListener {
             showClapLoginDialog()
         }
     }
@@ -116,12 +120,66 @@ class LoginActivity : LocalizedActivity() {
                         return@setOnClickListener
                     }
 
-                    // TODO: Integrate CLAP API login or ODK launch
-                    Toast.makeText(this, "Logging in as $email", Toast.LENGTH_SHORT).show()
-                    dialog.dismiss()
+                    clapLoginRequest(email, password, dialog)
                 }
                 dialog.show()
             }
+    }
+
+    private fun clapLoginRequest(email: String, password: String, dialog: android.app.Dialog) {
+        pd.setMessage("Signing in with CLAP . . .")
+        pd.show()
+
+        val api = ApiClient.create(this)
+
+        val call = api.clapLogin(email, password)
+        call.enqueue(object : Callback<LoginResponse> {
+            override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                pd.dismiss()
+                dialog.dismiss()
+                handleLoginResponse(response, email)
+            }
+
+            override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
+                pd.dismiss()
+                Toast.makeText(applicationContext, t.localizedMessage ?: "Error", Toast.LENGTH_SHORT).show()
+            }
+        })
+        call.enqueue(object : Callback<LoginResponse> {
+            override fun onResponse(call: Call<LoginResponse>, response: retrofit2.Response<LoginResponse>) {
+                pd.dismiss()
+                if (response.isSuccessful && response.body() != null) {
+                    val clapUser = response.body()!!
+
+                    // ✅ Save into Meta settings (like default login does)
+                    val gson = Gson()
+                    val jsonuser = gson.toJson(clapUser)
+                    settingsProvider.getMetaSettings().save(MetaKeys.KEY_USER, jsonuser)
+
+                    val generalSettings = settingsProvider.getUnprotectedSettings("clap_project")
+                    /*generalSettings.save(ProjectKeys.KEY_METADATA_USERNAME, clapUser.employee_name)
+                    generalSettings.save(ProjectKeys.KEY_USERNAME, clapUser.email_id ?: email)
+                    generalSettings.save(ProjectKeys.KEY_METADATA_PHONENUMBER, clapUser.mobile_num)
+                    generalSettings.save(ProjectKeys.KEY_METADATA_EMAIL, clapUser.email_id)*/
+
+                    // Clap API doesn’t return project tokens/URLs like ODK does,
+                    // so you may want to set a fixed CLAP server URL or skip it.
+                    generalSettings.save(ProjectKeys.KEY_SERVER_URL, "https://clap.wassan.org")
+
+                    dialog.dismiss()
+
+                    initProject()
+                    launchDashboard()
+                } else {
+                    Toast.makeText(applicationContext, "Clap Login Failed", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
+                pd.dismiss()
+                Toast.makeText(applicationContext, t.localizedMessage ?: "Error", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     private fun loginRequest() {
@@ -134,6 +192,17 @@ class LoginActivity : LocalizedActivity() {
 
         val call = api.login(username1, password1)
         call.enqueue(object : Callback<LoginResponse> {
+            override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
+                pd.dismiss()
+                handleLoginResponse(response, username1)
+            }
+
+            override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
+                pd.dismiss()
+                Toast.makeText(applicationContext, t.localizedMessage ?: "Error", Toast.LENGTH_SHORT).show()
+            }
+        })
+        /*call.enqueue(object : Callback<LoginResponse> {
             override fun onResponse(call: Call<LoginResponse>, response: retrofit2.Response<LoginResponse>) {
                 pd.dismiss()
                 if (response.isSuccessful && response.body()?.status == true) {
@@ -185,7 +254,55 @@ class LoginActivity : LocalizedActivity() {
                 pd.dismiss()
                 Toast.makeText(applicationContext, t.localizedMessage ?: "Error", Toast.LENGTH_SHORT).show()
             }
-        })
+        })*/
+    }
+
+    private fun handleLoginResponse(response: Response<LoginResponse>, usernameOrEmail: String) {
+        if (response.isSuccessful && response.body()?.status == true) {
+            val userJson = response.body()?.user ?: return
+            val defaultProjectJson = userJson.default_project
+
+            if (defaultProjectJson == null || defaultProjectJson.central_project_id.isNullOrEmpty()) {
+                Toast.makeText(applicationContext, "No project assigned to you", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            val serverUrl = "${defaultProjectJson.server_url}/key/${defaultProjectJson.central_user_token}/projects/${defaultProjectJson.central_project_id}"
+
+            val user = User(
+                userJson.id,
+                userJson.username,
+                userJson.email,
+                userJson.fullname,
+                userJson.phone,
+                userJson.position,
+                userJson.district_id,
+                userJson.block_id,
+                userJson.gp_id,
+                userJson.user_group_id,
+                userJson.image,
+                userJson.user_project,
+                defaultProjectJson
+            )
+
+            val gson = Gson()
+            val jsonuser = gson.toJson(user)
+
+            val generalSettings = settingsProvider.getUnprotectedSettings(defaultProjectJson.central_project_id)
+            settingsProvider.getMetaSettings().save(MetaKeys.KEY_USER, jsonuser)
+            generalSettings.save(ProjectKeys.KEY_METADATA_USERNAME, usernameOrEmail)
+            generalSettings.save(ProjectKeys.KEY_USERNAME, usernameOrEmail)
+            generalSettings.save(ProjectKeys.KEY_METADATA_PHONENUMBER, userJson.phone)
+            generalSettings.save(ProjectKeys.KEY_METADATA_EMAIL, userJson.email)
+            generalSettings.save(ProjectKeys.KEY_SERVER_URL, serverUrl)
+
+            initProject()
+            launchDashboard()
+
+        } else {
+            val msg = response.body()?.message ?: "Login failed"
+            Toast.makeText(applicationContext, msg, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun launchDashboard() {

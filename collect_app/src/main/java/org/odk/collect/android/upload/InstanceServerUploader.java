@@ -277,7 +277,19 @@ public class InstanceServerUploader extends InstanceUploader {
         }
 
         // add deviceID to request
-        urlString += "?deviceID=" + URLEncoder.encode(deviceId != null ? deviceId : "", StandardCharsets.UTF_8);
+        //urlString += "?deviceID=" + URLEncoder.encode(deviceId != null ? deviceId : "", StandardCharsets.UTF_8);
+        try {
+            urlString += "?deviceID=" + URLEncoder.encode(deviceId != null ? deviceId : "", "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            // Handle the exception. For example, you could log it or use a default value.
+            // Since UTF-8 is a standard encoding, this exception is highly unlikely to occur.
+            Timber.e(e, "UTF-8 encoding not supported, which should not happen.");
+            // Optionally, you might decide to proceed without the deviceID or throw a runtime exception
+            // if this parameter is critical.
+            // For example, to simply omit the deviceID if encoding fails:
+            // urlString += ""; // Or some other fallback
+        }
+        Timber.e(urlString);
 
         return urlString;
     }
