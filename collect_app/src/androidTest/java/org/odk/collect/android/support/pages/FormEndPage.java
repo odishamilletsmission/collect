@@ -2,12 +2,11 @@ package org.odk.collect.android.support.pages;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.assertion.ViewAssertions.matches;
-import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
-import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import org.odk.collect.android.R;
+import org.odk.collect.testshared.AssertionFramework;
+import org.odk.collect.testshared.WaitFor;
 
 public class FormEndPage extends Page<FormEndPage> {
 
@@ -19,12 +18,12 @@ public class FormEndPage extends Page<FormEndPage> {
 
     @Override
     public FormEndPage assertOnPage() {
-        onView(withText(getTranslatedString(org.odk.collect.strings.R.string.save_enter_data_description, formName))).check(matches(isDisplayed()));
+        assertText(org.odk.collect.strings.R.string.save_enter_data_description, AssertionFramework.COMPOSE, formName);
         return this;
     }
 
     public <D extends Page<D>> D clickSaveAsDraft(D destination) {
-        return clickOnString(org.odk.collect.strings.R.string.save_as_draft, destination);
+        return clickOnString(org.odk.collect.strings.R.string.save_as_draft, destination, AssertionFramework.COMPOSE);
     }
 
     public MainMenuPage clickSaveAsDraft() {
@@ -32,29 +31,29 @@ public class FormEndPage extends Page<FormEndPage> {
     }
 
     public FormEndPage clickSaveAsDraftWithError(String errorMsg) {
-        clickOnString(org.odk.collect.strings.R.string.save_as_draft);
+        clickOnString(org.odk.collect.strings.R.string.save_as_draft, this, AssertionFramework.COMPOSE);
         checkIsToastWithMessageDisplayed(errorMsg);
         return this;
     }
 
     public <D extends Page<D>> D clickFinalize(D destination) {
-        return clickOnString(org.odk.collect.strings.R.string.finalize, destination);
+        return WaitFor.waitFor(() -> {
+            return clickOnString(org.odk.collect.strings.R.string.finalize, destination, AssertionFramework.COMPOSE);
+        });
     }
 
     public MainMenuPage clickFinalize() {
-        clickFinalize(new MainMenuPage());
-        return new MainMenuPage();
+        return clickFinalize(new MainMenuPage());
     }
 
     public FormEndPage clickFinalizeWithError(String errorMsg) {
-        clickOnString(org.odk.collect.strings.R.string.finalize);
+        clickOnString(org.odk.collect.strings.R.string.finalize, this, AssertionFramework.COMPOSE);
         checkIsToastWithMessageDisplayed(errorMsg);
         return this;
     }
 
     public MainMenuPage clickSend() {
-        clickOnString(org.odk.collect.strings.R.string.send);
-        return new MainMenuPage().assertOnPage();
+        return clickOnString(org.odk.collect.strings.R.string.send, new MainMenuPage(), AssertionFramework.COMPOSE);
     }
 
     public FormMapPage clickSaveAndExitBackToMap() {
@@ -62,9 +61,9 @@ public class FormEndPage extends Page<FormEndPage> {
     }
 
     public FormEntryPage clickSaveAndExitWithError(String errorText) {
-        clickOnString(org.odk.collect.strings.R.string.finalize);
-        assertConstraintDisplayed(errorText);
-        return new FormEntryPage(formName).assertOnPage();
+        FormEntryPage page = clickOnString(org.odk.collect.strings.R.string.finalize, new FormEntryPage(formName), AssertionFramework.COMPOSE);
+        assertText(errorText);
+        return page;
     }
 
     public ChangesReasonPromptPage clickSaveAndExitWithChangesReasonPrompt() {
@@ -86,10 +85,5 @@ public class FormEndPage extends Page<FormEndPage> {
 
     public FormEndPage clickOptionsIcon() {
         return clickOptionsIcon(org.odk.collect.strings.R.string.project_settings);
-    }
-
-    public FormEntryPage assertConstraintDisplayed(String constraintText) {
-        FormEntryPage formEntryPage = new FormEntryPage(formName);
-        return formEntryPage.assertText(constraintText);
     }
 }

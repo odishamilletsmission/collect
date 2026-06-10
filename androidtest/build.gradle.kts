@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlinAndroid)
 }
 
 apply(from = "../config/quality.gradle")
@@ -12,7 +11,6 @@ android {
         minSdk = libs.versions.minSdk.get().toInt()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
     }
 
     compileOptions {
@@ -32,6 +30,7 @@ android {
 dependencies {
     coreLibraryDesugaring(libs.desugar)
 
+    implementation(project(":async"))
     implementation(libs.junit)
     implementation(libs.androidxTestCoreKtx)
     implementation(libs.androidxLifecycleLivedataKtx)
@@ -40,4 +39,13 @@ dependencies {
     implementation(libs.androidxAppcompat)
     implementation(libs.androidxTestEspressoIntents)
     implementation(libs.timber)
+    implementation(libs.kotlinxCoroutinesTest)
+    var composeBom = platform(libs.androidxComposeBom)
+    implementation(composeBom)
+    implementation(libs.androidXComposeUiTestJunit4)
+
+    //noinspection FragmentGradleConfiguration
+    debugApi(libs.androidxFragmentTesting) {
+        exclude(group = "androidx.test", module = "monitor") // fixes issue https://github.com/android/android-test/issues/731
+    }
 }

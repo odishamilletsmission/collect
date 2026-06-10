@@ -12,6 +12,7 @@ import org.odk.collect.android.database.instances.DatabaseInstanceColumns;
 import org.odk.collect.android.external.InstancesContract;
 import org.odk.collect.android.projects.ProjectsDataService;
 import org.odk.collect.android.wassan.app.FilterHelper;
+import org.odk.collect.androidshared.system.UriExtKt;
 import org.odk.collect.forms.instances.Instance;
 
 import java.util.Arrays;
@@ -164,16 +165,10 @@ public class CursorLoaderFactory {
 
         return new CursorLoader(
                 Collect.getInstance(),
-                getUriWithAnalyticsParam(uri),
+                UriExtKt.addQueryParam(uri, INTERNAL_QUERY_PARAM, "true"),
                 null,
                 selection,
                 selectionArgs,
                 sortOrder);
-    }
-
-    private Uri getUriWithAnalyticsParam(Uri uri) {
-        return uri.buildUpon()
-                .appendQueryParameter(INTERNAL_QUERY_PARAM, "true")
-                .build();
     }
 }

@@ -11,7 +11,7 @@ import com.google.android.material.badge.BadgeUtils
 import com.google.android.material.badge.ExperimentalBadgeUtils
 import org.odk.collect.android.R
 import org.odk.collect.android.databinding.MainMenuButtonBinding
-import org.odk.collect.androidshared.system.ContextUtils.getThemeAttributeValue
+import org.odk.collect.androidshared.system.ContextExt.getThemeAttributeValue
 import org.odk.collect.androidshared.ui.multiclicksafe.MultiClickGuard
 
 class MainMenuButton(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) {
@@ -33,7 +33,7 @@ class MainMenuButton(context: Context, attrs: AttributeSet?) : FrameLayout(conte
         }
 
         badge = BadgeDrawable.create(context).apply {
-            backgroundColor = getThemeAttributeValue(context, com.google.android.material.R.attr.colorPrimary)
+            backgroundColor = getThemeAttributeValue(context, androidx.appcompat.R.attr.colorPrimary)
             badgeGravity = BadgeDrawable.BOTTOM_END
         }
     }

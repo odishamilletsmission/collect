@@ -7,7 +7,6 @@ import androidx.core.os.bundleOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.WorkManager
@@ -19,29 +18,32 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import org.odk.collect.android.databinding.SelectOneFromMapDialogLayoutBinding
+import org.odk.collect.android.databinding.WidgetAnswerDialogLayoutBinding
 import org.odk.collect.android.formentry.FormEntryViewModel
 import org.odk.collect.android.injection.config.AppDependencyModule
 import org.odk.collect.android.storage.StoragePathProvider
 import org.odk.collect.android.support.CollectHelpers
 import org.odk.collect.android.support.MockFormEntryPromptBuilder
 import org.odk.collect.android.utilities.Appearances
-import org.odk.collect.android.widgets.items.SelectOneFromMapDialogFragment.Companion.ARG_FORM_INDEX
 import org.odk.collect.android.widgets.items.SelectOneFromMapDialogFragment.Companion.ARG_SELECTED_INDEX
 import org.odk.collect.android.widgets.support.FormElementFixtures.selectChoice
 import org.odk.collect.android.widgets.support.FormElementFixtures.treeElement
 import org.odk.collect.android.widgets.support.NoOpMapFragment
+import org.odk.collect.android.widgets.utilities.WidgetAnswerDialogFragment.Companion.ARG_FORM_INDEX
+import org.odk.collect.androidshared.ui.DisplayString
 import org.odk.collect.androidshared.ui.FragmentFactoryBuilder
 import org.odk.collect.async.Scheduler
 import org.odk.collect.fragmentstest.FragmentScenarioLauncherRule
-import org.odk.collect.geo.selection.IconifiedText
-import org.odk.collect.geo.selection.MappableSelectItem
+import org.odk.collect.geo.items.IconifiedText
+import org.odk.collect.geo.items.MappableItem
 import org.odk.collect.geo.selection.SelectionMapFragment
 import org.odk.collect.geo.selection.SelectionMapFragment.Companion.REQUEST_SELECT_ITEM
+import org.odk.collect.icons.R
 import org.odk.collect.maps.MapFragment
 import org.odk.collect.maps.MapFragmentFactory
 import org.odk.collect.maps.MapPoint
@@ -55,11 +57,11 @@ class SelectOneFromMapDialogFragmentTest {
     private val selectChoices = listOf(
         selectChoice(
             value = "a",
-            item = treeElement(children = listOf(treeElement(SelectChoicesMapData.GEOMETRY, "12.0 -1.0 305 0")))
+            item = treeElement(children = listOf(treeElement(GeoSelectChoiceElements.GEOMETRY, "12.0 -1.0 305 0")))
         ),
         selectChoice(
             value = "b",
-            item = treeElement(children = listOf(treeElement(SelectChoicesMapData.GEOMETRY, "13.0 -1.0 305 0")))
+            item = treeElement(children = listOf(treeElement(GeoSelectChoiceElements.GEOMETRY, "13.0 -1.0 305 0")))
         )
     )
 
@@ -78,9 +80,9 @@ class SelectOneFromMapDialogFragmentTest {
 
     private val formEntryViewModel = mock<FormEntryViewModel> {
         on { getQuestionPrompt(prompt.index) } doReturn prompt
+        on { loadSelectChoices(prompt) } doAnswer { prompt.selectChoices }
     }
 
-    private val application = ApplicationProvider.getApplicationContext<Application>()
     private val scheduler = FakeScheduler()
 
     private val viewModelFactory = object : ViewModelProvider.Factory {
@@ -109,7 +111,7 @@ class SelectOneFromMapDialogFragmentTest {
                 }
             }
 
-            override fun providesScheduler(workManager: WorkManager?): Scheduler {
+            override fun providesScheduler(workManager: WorkManager?, application: Application): Scheduler {
                 return scheduler
             }
 
@@ -149,8 +151,8 @@ class SelectOneFromMapDialogFragmentTest {
         )
 
         scenario.onFragment {
-            val binding = SelectOneFromMapDialogLayoutBinding.bind(it.view!!)
-            val fragment = binding.selectionMap.getFragment<SelectionMapFragment>()
+            val binding = WidgetAnswerDialogLayoutBinding.bind(it.view!!)
+            val fragment = binding.answerFragment.getFragment<SelectionMapFragment>()
             assertThat(fragment, notNullValue())
             assertThat(fragment.skipSummary, equalTo(false))
             assertThat(fragment.showNewItemButton, equalTo(false))
@@ -171,21 +173,21 @@ class SelectOneFromMapDialogFragmentTest {
         )
 
         scenario.onFragment {
-            val binding = SelectOneFromMapDialogLayoutBinding.bind(it.view!!)
-            val fragment = binding.selectionMap.getFragment<SelectionMapFragment>()
+            val binding = WidgetAnswerDialogLayoutBinding.bind(it.view!!)
+            val fragment = binding.answerFragment.getFragment<SelectionMapFragment>()
 
             val data = fragment.selectionMapData
             scheduler.flush()
 
             assertThat(data.getMapTitle().value, equalTo(prompt.longText))
             assertThat(data.getItemCount().value, equalTo(prompt.selectChoices.size))
-            val firstFeatureGeometry = selectChoices[0].getChild(SelectChoicesMapData.GEOMETRY)!!.split(" ")
-            val secondFeatureGeometry = selectChoices[1].getChild(SelectChoicesMapData.GEOMETRY)!!.split(" ")
+            val firstFeatureGeometry = selectChoices[0].getChild(GeoSelectChoiceElements.GEOMETRY)!!.split(" ")
+            val secondFeatureGeometry = selectChoices[1].getChild(GeoSelectChoiceElements.GEOMETRY)!!.split(" ")
             assertThat(
                 data.getMappableItems().value,
                 equalTo(
                     listOf(
-                        MappableSelectItem.MappableSelectPoint(
+                        MappableItem.Point(
                             0,
                             "A",
                             point = MapPoint(
@@ -194,14 +196,14 @@ class SelectOneFromMapDialogFragmentTest {
                                 firstFeatureGeometry[2].toDouble(),
                                 firstFeatureGeometry[3].toDouble()
                             ),
-                            smallIcon = org.odk.collect.icons.R.drawable.ic_map_marker_with_hole_small,
-                            largeIcon = org.odk.collect.icons.R.drawable.ic_map_marker_with_hole_big,
+                            smallIcon = R.drawable.ic_map_marker_with_hole_small,
+                            largeIcon = R.drawable.ic_map_marker_with_hole_big,
                             action = IconifiedText(
-                                org.odk.collect.icons.R.drawable.ic_save,
-                                application.getString(org.odk.collect.strings.R.string.select_item)
+                                R.drawable.ic_save,
+                                DisplayString.Resource(org.odk.collect.strings.R.string.select_item)
                             )
                         ),
-                        MappableSelectItem.MappableSelectPoint(
+                        MappableItem.Point(
                             1,
                             "B",
                             point = MapPoint(
@@ -210,11 +212,11 @@ class SelectOneFromMapDialogFragmentTest {
                                 secondFeatureGeometry[2].toDouble(),
                                 secondFeatureGeometry[3].toDouble()
                             ),
-                            smallIcon = org.odk.collect.icons.R.drawable.ic_map_marker_with_hole_small,
-                            largeIcon = org.odk.collect.icons.R.drawable.ic_map_marker_with_hole_big,
+                            smallIcon = R.drawable.ic_map_marker_with_hole_small,
+                            largeIcon = R.drawable.ic_map_marker_with_hole_big,
                             action = IconifiedText(
-                                org.odk.collect.icons.R.drawable.ic_save,
-                                application.getString(org.odk.collect.strings.R.string.select_item)
+                                R.drawable.ic_save,
+                                DisplayString.Resource(org.odk.collect.strings.R.string.select_item)
                             )
                         )
                     )
@@ -236,14 +238,14 @@ class SelectOneFromMapDialogFragmentTest {
         scheduler.flush()
 
         scenario.onFragment {
-            val binding = SelectOneFromMapDialogLayoutBinding.bind(it.view!!)
-            val fragment = binding.selectionMap.getFragment<SelectionMapFragment>()
+            val binding = WidgetAnswerDialogLayoutBinding.bind(it.view!!)
+            val fragment = binding.answerFragment.getFragment<SelectionMapFragment>()
             assertThat(fragment, notNullValue())
             assertThat(fragment.skipSummary, equalTo(false))
             assertThat(fragment.showNewItemButton, equalTo(false))
 
             val data = fragment.selectionMapData
-            assertThat(data.getMappableItems().value!![1].selected, equalTo(true))
+            assertThat(data.isSelected(data.getMappableItems().value!![1]), equalTo(true))
         }
     }
 
@@ -264,8 +266,8 @@ class SelectOneFromMapDialogFragmentTest {
         scheduler.runBackground()
 
         scenario.onFragment {
-            val binding = SelectOneFromMapDialogLayoutBinding.bind(it.view!!)
-            val fragment = binding.selectionMap.getFragment<SelectionMapFragment>()
+            val binding = WidgetAnswerDialogLayoutBinding.bind(it.view!!)
+            val fragment = binding.answerFragment.getFragment<SelectionMapFragment>()
             assertThat(fragment.skipSummary, equalTo(true))
         }
     }

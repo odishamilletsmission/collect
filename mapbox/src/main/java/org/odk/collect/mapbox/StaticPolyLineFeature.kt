@@ -4,7 +4,7 @@ import com.mapbox.geojson.Point
 import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotation
 import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManager
 import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationOptions
-import org.odk.collect.maps.LineDescription
+import org.odk.collect.maps.traces.LineDescription
 import org.odk.collect.maps.MapFragment
 import org.odk.collect.maps.MapPoint
 
@@ -28,11 +28,6 @@ internal class StaticPolyLineFeature(
                 Point.fromLngLat(it.longitude, it.latitude, it.altitude)
             }
             .toMutableList()
-            .also {
-                if (lineDescription.closed && it.isNotEmpty()) {
-                    it.add(it.first())
-                }
-            }
 
         polylineAnnotation?.let {
             polylineAnnotationManager.delete(it)

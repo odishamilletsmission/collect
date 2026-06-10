@@ -67,7 +67,6 @@ import org.odk.collect.android.projects.ProjectsDataService
 import org.odk.collect.android.projects.QrCodeProjectCreatorDialog
 import org.odk.collect.android.storage.StoragePathProvider
 import org.odk.collect.android.tasks.DownloadFormListTask
-import org.odk.collect.android.tasks.InstanceUploaderTask
 import org.odk.collect.android.tasks.MediaLoadingTask
 import org.odk.collect.android.utilities.AuthDialogUtility
 import org.odk.collect.android.utilities.FormsRepositoryProvider
@@ -81,6 +80,7 @@ import org.odk.collect.android.wassan.fragments.CalculatorFragment
 import org.odk.collect.android.wassan.fragments.DashboardFragment
 import org.odk.collect.android.widgets.QuestionWidget
 import org.odk.collect.android.widgets.items.SelectOneFromMapDialogFragment
+import org.odk.collect.androidshared.utils.UniqueIdGenerator
 import org.odk.collect.async.Scheduler
 import org.odk.collect.async.network.NetworkStateProvider
 import org.odk.collect.draw.DrawActivity
@@ -133,8 +133,6 @@ interface AppDependencyComponent {
     fun inject(aboutActivity: AboutActivity)
 
     fun inject(formFillingActivity: FormFillingActivity)
-
-    fun inject(uploader: InstanceUploaderTask)
 
     fun inject(serverPreferencesFragment: ServerPreferencesFragment)
 
@@ -311,4 +309,6 @@ interface AppDependencyComponent {
     fun projectDependencyModuleFactory(): ProjectDependencyModuleFactory
 
     fun webPageService(): WebPageService
+
+    fun uniqueIdGenerator(): UniqueIdGenerator
 }

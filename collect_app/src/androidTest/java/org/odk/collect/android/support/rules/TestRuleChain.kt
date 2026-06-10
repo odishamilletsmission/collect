@@ -5,19 +5,21 @@ import android.os.Build
 import androidx.test.rule.GrantPermissionRule
 import org.junit.rules.RuleChain
 import org.odk.collect.android.support.CountingTaskExecutorIdlingResource
-import org.odk.collect.android.support.SchedulerIdlingResource
 import org.odk.collect.android.support.TestDependencies
+import org.odk.collect.android.support.async.AsyncWorkTrackerIdlingResource
 
 object TestRuleChain {
 
     @JvmStatic
     @JvmOverloads
     fun chain(testDependencies: TestDependencies = TestDependencies()): RuleChain {
-        val schedulerIdlingResource = SchedulerIdlingResource(testDependencies.scheduler)
+        val asyncWorkTrackerIdlingResource = AsyncWorkTrackerIdlingResource()
         val countingTaskExecutorIdlingResource = CountingTaskExecutorIdlingResource()
+        val pageComposeRule = PageComposeRule()
 
         return RuleChain
-            .outerRule(RetryOnDeviceErrorRule())
+            .outerRule(pageComposeRule.composeRule)
+            .around(RetryOnDeviceErrorRule())
             .around(createGrantPermissionRule())
             .around(ResetRotationRule())
             .around(PrepDeviceForTestsRule())
@@ -25,9 +27,10 @@ object TestRuleChain {
             .around(countingTaskExecutorIdlingResource)
             .around(
                 IdlingResourceRule(
-                    listOf(schedulerIdlingResource, countingTaskExecutorIdlingResource)
+                    listOf(asyncWorkTrackerIdlingResource, countingTaskExecutorIdlingResource)
                 )
             )
+            .around(pageComposeRule)
     }
 
     private fun createGrantPermissionRule() =

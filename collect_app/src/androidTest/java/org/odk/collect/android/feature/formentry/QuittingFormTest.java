@@ -1,6 +1,5 @@
 package org.odk.collect.android.feature.formentry;
 
-
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import org.junit.Rule;
@@ -37,8 +36,8 @@ public class QuittingFormTest {
                 .assertNumberOfFinalizedForms(0)
                 .clickDrafts(1)
                 .clickOnForm("Two Question")
-                .assertText("Reuben")
-                .assertText("10");
+                .assertAnswer("Reuben")
+                .assertAnswer("10");
     }
 
     @Test
@@ -66,8 +65,8 @@ public class QuittingFormTest {
 
                 .clickDrafts(1)
                 .clickOnForm("Two Question")
-                .assertText("Reuben")
-                .assertTextDoesNotExist("10");
+                .assertAnswer("Reuben")
+                .assertAnswerDoesNotExist("10");
     }
 
     @Test
@@ -83,7 +82,7 @@ public class QuittingFormTest {
 
                 .clickDrafts(1)
                 .clickOnForm("Two Question Required")
-                .assertText("Reuben");
+                .assertAnswer("Reuben");
     }
 
     @Test
@@ -106,6 +105,6 @@ public class QuittingFormTest {
 
                 .clickDrafts(1)
                 .clickOnForm("Two Question Required")
-                .assertText("Another Reuben");
+                .assertAnswer("Another Reuben");
     }
 }

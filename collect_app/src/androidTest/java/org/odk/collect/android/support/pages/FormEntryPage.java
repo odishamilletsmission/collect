@@ -34,7 +34,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.odk.collect.android.R;
 import org.odk.collect.androidtest.DrawableMatcher;
-import org.odk.collect.testshared.Interactions;
+import org.odk.collect.testshared.EspressoInteractions;
 import org.odk.collect.testshared.ViewActions;
 import org.odk.collect.testshared.WaitFor;
 
@@ -179,7 +179,7 @@ public class FormEntryPage extends Page<FormEntryPage> {
     }
 
     public ProjectSettingsPage clickProjectSettings() {
-        onView(withText(getTranslatedString(org.odk.collect.strings.R.string.project_settings))).perform(click());
+        clickOnString(org.odk.collect.strings.R.string.project_settings);
         return new ProjectSettingsPage().assertOnPage();
     }
 
@@ -206,8 +206,12 @@ public class FormEntryPage extends Page<FormEntryPage> {
     }
 
     public FormHierarchyPage clickGoToArrow() {
-        onView(withId(R.id.menu_goto)).perform(click());
-        return new FormHierarchyPage(formName).assertOnPage();
+        // This click sometimes ends up turning into a long press
+        tryFlakyAction(() -> {
+            onView(withId(R.id.menu_goto)).perform(click());
+        });
+
+        return new FormHierarchyPage(formName);
     }
 
     public FormEntryPage clickWidgetButton() {
@@ -228,20 +232,17 @@ public class FormEntryPage extends Page<FormEntryPage> {
     }
 
     public FormEntryPage clickForwardButton() {
-        closeSoftKeyboard();
-        onView(withText(getTranslatedString(org.odk.collect.strings.R.string.form_forward))).perform(click());
+        clickOnString(org.odk.collect.strings.R.string.form_forward);
         return this;
     }
 
     public FormEndPage clickForwardButtonToEndScreen() {
-        closeSoftKeyboard();
-        onView(withText(getTranslatedString(org.odk.collect.strings.R.string.form_forward))).perform(click());
+        clickOnString(org.odk.collect.strings.R.string.form_forward);
         return new FormEndPage(formName).assertOnPage();
     }
 
     public FormEntryPage clickBackwardButton() {
-        closeSoftKeyboard();
-        onView(withText(getTranslatedString(org.odk.collect.strings.R.string.form_backward))).perform(click());
+        clickOnString(org.odk.collect.strings.R.string.form_backward);
         return this;
     }
 
@@ -318,7 +319,7 @@ public class FormEntryPage extends Page<FormEntryPage> {
             questionText = question;
         }
 
-        Interactions.replaceText(getQuestionFieldMatcher(questionText), answer);
+        EspressoInteractions.replaceText(getQuestionFieldMatcher(questionText), answer);
         return this;
     }
 
@@ -348,7 +349,7 @@ public class FormEntryPage extends Page<FormEntryPage> {
     }
 
     public FormEntryPage clickOnQuestionField(String questionText) {
-        Interactions.clickOn(getQuestionFieldMatcher(questionText));
+        EspressoInteractions.clickOn(getQuestionFieldMatcher(questionText));
         return this;
     }
 
@@ -459,8 +460,7 @@ public class FormEntryPage extends Page<FormEntryPage> {
     }
 
     public FormEntryPage assertBackgroundLocationSnackbarShown() {
-        onView(withId(com.google.android.material.R.id.snackbar_text))
-                .check(matches(withText(String.format(ApplicationProvider.getApplicationContext().getString(org.odk.collect.strings.R.string.background_location_enabled), "⋮"))));
+        checkIsSnackbarWithMessageDisplayed(String.format(ApplicationProvider.getApplicationContext().getString(org.odk.collect.strings.R.string.background_location_enabled), "⋮"));
         return this;
     }
 

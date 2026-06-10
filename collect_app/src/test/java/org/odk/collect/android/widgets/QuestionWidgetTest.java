@@ -51,7 +51,7 @@ public class QuestionWidgetTest {
 
         WidgetTestActivity activity = CollectHelpers.createThemedActivity(WidgetTestActivity.class);
         AudioPlayer audioPlayer = mock();
-        TestWidget widget = new TestWidget(activity, new QuestionDetails(prompt), new QuestionWidget.Dependencies(audioPlayer));
+        TestWidget widget = new TestWidget(activity, new QuestionDetails(prompt), new QuestionWidget.Dependencies(audioPlayer, null));
 
         AudioButton audioButton = widget.getAudioVideoImageTextLabel().findViewById(R.id.audioButton);
         audioButton.performClick();

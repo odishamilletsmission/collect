@@ -33,8 +33,8 @@ public class QuickSaveTest {
 
                 .clickDrafts(1)
                 .clickOnForm("Two Question")
-                .assertText("Reuben")
-                .assertText("32");
+                .assertAnswer("Reuben")
+                .assertAnswer("32");
     }
 
     @Test
@@ -49,7 +49,7 @@ public class QuickSaveTest {
 
                 .clickDrafts(1)
                 .clickOnForm("Two Question Required")
-                .assertText("Reuben");
+                .assertAnswer("Reuben");
     }
 
     @Test
@@ -71,6 +71,6 @@ public class QuickSaveTest {
 
                 .clickDrafts(1)
                 .clickOnForm("Two Question Required")
-                .assertText("Another Reuben");
+                .assertAnswer("Another Reuben");
     }
 }

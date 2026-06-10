@@ -1,10 +1,11 @@
 package org.odk.collect.android.widgets.support
 
 import androidx.fragment.app.Fragment
-import org.odk.collect.maps.LineDescription
+import org.odk.collect.maps.traces.LineDescription
 import org.odk.collect.maps.MapFragment
 import org.odk.collect.maps.MapPoint
-import org.odk.collect.maps.PolygonDescription
+import org.odk.collect.maps.circles.CircleDescription
+import org.odk.collect.maps.traces.PolygonDescription
 import org.odk.collect.maps.markers.MarkerDescription
 import org.odk.collect.maps.markers.MarkerIconDescription
 
@@ -43,7 +44,10 @@ class NoOpMapFragment : Fragment(), MapFragment {
     ) {
     }
 
-    override fun addMarker(markerDescription: MarkerDescription): Int {
+    override fun updateMarker(
+        featureId: Int,
+        markerDescription: MarkerDescription
+    ) {
         TODO("Not yet implemented")
     }
 
@@ -62,21 +66,43 @@ class NoOpMapFragment : Fragment(), MapFragment {
         TODO("Not yet implemented")
     }
 
+    override fun updatePolyLine(
+        featureId: Int,
+        lineDescription: LineDescription
+    ) {
+        TODO("Not yet implemented")
+    }
+
     override fun addPolygon(polygonDescription: PolygonDescription): Int {
         TODO("Not yet implemented")
     }
 
-    override fun appendPointToPolyLine(featureId: Int, point: MapPoint) {
+    override fun updatePolygon(
+        featureId: Int,
+        polygonDescription: PolygonDescription
+    ) {
+        TODO("Not yet implemented")
     }
 
-    override fun removePolyLineLastPoint(featureId: Int) {
+    override fun addCircle(circleDescription: CircleDescription): Int {
+        TODO("Not yet implemented")
     }
 
-    override fun getPolyLinePoints(featureId: Int): MutableList<MapPoint> {
+    override fun updateCircle(
+        featureId: Int,
+        circleDescription: CircleDescription
+    ) {
+        TODO("Not yet implemented")
+    }
+
+    override fun getPolyPoints(featureId: Int): MutableList<MapPoint> {
         TODO("Not yet implemented")
     }
 
     override fun clearFeatures() {
+    }
+
+    override fun clearFeatures(ids: List<Int>) {
     }
 
     override fun setClickListener(listener: MapFragment.PointListener?) {
@@ -89,26 +115,6 @@ class NoOpMapFragment : Fragment(), MapFragment {
     }
 
     override fun setDragEndListener(listener: MapFragment.FeatureListener?) {
-    }
-
-    override fun setGpsLocationEnabled(enabled: Boolean) {
-    }
-
-    override fun getGpsLocation(): MapPoint? {
-        TODO("Not yet implemented")
-    }
-
-    override fun getLocationProvider(): String? {
-        TODO("Not yet implemented")
-    }
-
-    override fun runOnGpsLocationReady(listener: MapFragment.ReadyListener) {
-    }
-
-    override fun setGpsLocationListener(listener: MapFragment.PointListener?) {
-    }
-
-    override fun setRetainMockAccuracy(retainMockAccuracy: Boolean) {
     }
 
     override fun hasCenter(): Boolean {

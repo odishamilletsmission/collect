@@ -7,8 +7,10 @@ import dagger.Component
 import dagger.Module
 import dagger.Provides
 import kotlinx.coroutines.Dispatchers
-import org.odk.collect.async.CoroutineScheduler
+import org.odk.collect.androidshared.utils.UniqueIdGenerator
+import org.odk.collect.async.coroutines.CoroutineTaskRunner
 import org.odk.collect.async.Scheduler
+import org.odk.collect.async.SchedulerBuilder
 import org.odk.collect.audiorecorder.mediarecorder.AACRecordingResource
 import org.odk.collect.audiorecorder.mediarecorder.AMRRecordingResource
 import org.odk.collect.audiorecorder.recorder.Output
@@ -61,23 +63,20 @@ open class AudioRecorderDependencyModule {
     open fun providesRecorder(cacheDir: File): Recorder {
         return RecordingResourceRecorder(cacheDir) { output ->
             when (output) {
-                Output.AMR -> {
-                    AMRRecordingResource(MediaRecorder(), android.os.Build.VERSION.SDK_INT)
-                }
-
-                Output.AAC -> {
-                    AACRecordingResource(MediaRecorder(), android.os.Build.VERSION.SDK_INT, 64)
-                }
-
-                Output.AAC_LOW -> {
-                    AACRecordingResource(MediaRecorder(), android.os.Build.VERSION.SDK_INT, 24)
-                }
+                Output.AMR -> AMRRecordingResource(MediaRecorder())
+                Output.AAC -> AACRecordingResource(MediaRecorder(), 64)
+                Output.AAC_LOW -> AACRecordingResource(MediaRecorder(), 24)
             }
         }
     }
 
     @Provides
     open fun providesScheduler(application: Application): Scheduler {
-        return CoroutineScheduler(Dispatchers.Main, Dispatchers.IO)
+        throw UnsupportedOperationException("This should be overridden by dependent application")
+    }
+
+    @Provides
+    open fun providesUniqueIdGenerator(): UniqueIdGenerator {
+        throw UnsupportedOperationException("This should be overridden by dependent application")
     }
 }

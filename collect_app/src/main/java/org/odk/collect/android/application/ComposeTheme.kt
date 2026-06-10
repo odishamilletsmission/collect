@@ -10,6 +10,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import org.odk.collect.android.R
 import org.odk.collect.androidshared.ui.ComposeThemeProvider
 
@@ -22,20 +25,35 @@ fun CollectTheme(content: @Composable () -> Unit) {
         primary = colorResource(R.color.colorPrimaryLight),
         onPrimary = colorResource(R.color.colorOnPrimaryLight),
         surface = colorResource(R.color.colorSurfaceLight),
+        onSurface = colorResource(R.color.colorOnSurfaceLight),
         primaryContainer = colorResource(R.color.colorPrimaryContainerLight),
-        onPrimaryContainer = colorResource(R.color.colorOnPrimaryContainerLight)
+        onPrimaryContainer = colorResource(R.color.colorOnPrimaryContainerLight),
+        surfaceContainerHighest = colorResource(R.color.colorSurfaceContainerHighestLight)
     )
+
     val darkColors = darkColorScheme(
         primary = colorResource(R.color.colorPrimaryDark),
         onPrimary = colorResource(R.color.colorOnPrimaryDark),
         surface = colorResource(R.color.colorSurfaceDark),
+        onSurface = colorResource(R.color.colorOnSurfaceDark),
         primaryContainer = colorResource(R.color.colorPrimaryContainerDark),
-        onPrimaryContainer = colorResource(R.color.colorOnPrimaryContainerDark)
+        onPrimaryContainer = colorResource(R.color.colorOnPrimaryContainerDark),
+        surfaceContainerHighest = colorResource(R.color.colorSurfaceContainerHighestDark)
     )
+
     val colorScheme = if (isSystemInDarkTheme()) darkColors else lightColors
 
     val typography = Typography(
-        bodyMedium = MaterialTheme.typography.bodyMedium
+        bodyMedium = MaterialTheme.typography.bodyMedium,
+        bodyLarge = MaterialTheme.typography.bodyLarge,
+        titleMedium = MaterialTheme.typography.titleMedium,
+        titleLarge = MaterialTheme.typography.titleLarge.copy(
+            fontSize = 20.sp,
+            lineHeight = 24.sp,
+            fontFamily = FontFamily.SansSerif,
+            fontWeight = FontWeight.Medium
+        ),
+        headlineSmall = MaterialTheme.typography.headlineSmall
     )
 
     val shapes = Shapes(

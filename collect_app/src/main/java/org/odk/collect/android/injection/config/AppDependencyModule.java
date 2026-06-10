@@ -51,11 +51,13 @@ import org.odk.collect.android.formlists.blankformlist.BlankFormListViewModel;
 import org.odk.collect.android.formmanagement.CollectFormEntryControllerFactory;
 import org.odk.collect.android.formmanagement.FormsDataService;
 import org.odk.collect.android.formmanagement.OpenRosaClientProvider;
-import org.odk.collect.android.formmanagement.ServerFormsDetailsFetcher;
 import org.odk.collect.android.geo.MapConfiguratorProvider;
 import org.odk.collect.android.geo.MapFragmentFactoryImpl;
+import org.odk.collect.android.instancemanagement.send.InstanceSubmitter;
 import org.odk.collect.android.instancemanagement.InstancesDataService;
-import org.odk.collect.android.instancemanagement.autosend.AutoSendSettingsProvider;
+import org.odk.collect.android.instancemanagement.send.autosend.AutoSendSettingsProvider;
+import org.odk.collect.android.instancemanagement.send.InstanceUploader;
+import org.odk.collect.android.instancemanagement.send.OpenRosaServerInstanceUploader;
 import org.odk.collect.android.instancemanagement.send.ReadyToSendViewModel;
 import org.odk.collect.android.itemsets.FastExternalItemsetsRepository;
 import org.odk.collect.android.mainmenu.MainMenuViewModelFactory;
@@ -93,16 +95,21 @@ import org.odk.collect.androidshared.system.BroadcastReceiverRegister;
 import org.odk.collect.androidshared.system.BroadcastReceiverRegisterImpl;
 import org.odk.collect.androidshared.system.IntentLauncher;
 import org.odk.collect.androidshared.system.IntentLauncherImpl;
+import org.odk.collect.androidshared.system.TamperDetector;
 import org.odk.collect.androidshared.utils.ScreenUtils;
-import org.odk.collect.async.CoroutineAndWorkManagerScheduler;
+import org.odk.collect.androidshared.utils.SettingsUniqueIdGenerator;
+import org.odk.collect.androidshared.utils.UniqueIdGenerator;
+import org.odk.collect.async.coroutines.CoroutineTaskRunner;
 import org.odk.collect.async.Scheduler;
+import org.odk.collect.async.SchedulerBuilder;
+import org.odk.collect.async.services.ForegroundServiceTaskSpecRunner;
+import org.odk.collect.async.workmanager.WorkManagerTaskSpecScheduler;
 import org.odk.collect.async.network.ConnectivityProvider;
 import org.odk.collect.async.network.NetworkStateProvider;
 import org.odk.collect.audioclips.AudioPlayerFactory;
 import org.odk.collect.audiorecorder.recording.AudioRecorder;
 import org.odk.collect.audiorecorder.recording.AudioRecorderFactory;
 import org.odk.collect.entities.storage.EntitiesRepository;
-import org.odk.collect.forms.FormsRepository;
 import org.odk.collect.imageloader.GlideImageLoader;
 import org.odk.collect.imageloader.ImageLoader;
 import org.odk.collect.location.GoogleFusedLocationClient;
@@ -123,7 +130,6 @@ import org.odk.collect.openrosa.http.okhttp.OkHttpConnection;
 import org.odk.collect.permissions.ContextCompatPermissionChecker;
 import org.odk.collect.permissions.PermissionsChecker;
 import org.odk.collect.permissions.PermissionsProvider;
-import org.odk.collect.projects.Project;
 import org.odk.collect.projects.ProjectCreator;
 import org.odk.collect.projects.ProjectsRepository;
 import org.odk.collect.projects.SettingsConnectionMatcher;
@@ -198,7 +204,8 @@ public class AppDependencyModule {
     @Singleton
     public Analytics providesAnalytics(Application application) {
         try {
-            return new BlockableFirebaseAnalytics(application);
+            boolean isTampered = TamperDetector.isTampered(application, BuildConfig.SIGNATURE);
+            return new BlockableFirebaseAnalytics(application, !isTampered);
         } catch (IllegalStateException e) {
             // Couldn't setup Firebase so use no-op instance
             return new NoopAnalytics();
@@ -279,8 +286,12 @@ public class AppDependencyModule {
     }
 
     @Provides
-    public Scheduler providesScheduler(WorkManager workManager) {
-        return new CoroutineAndWorkManagerScheduler(workManager);
+    public Scheduler providesScheduler(WorkManager workManager, Application application) {
+        return SchedulerBuilder.build(
+                new CoroutineTaskRunner(),
+                new ForegroundServiceTaskSpecRunner(application),
+                new WorkManagerTaskSpecScheduler(workManager)
+        );
     }
 
     @Provides
@@ -330,15 +341,8 @@ public class AppDependencyModule {
     }
 
     @Provides
-    public ServerFormsDetailsFetcher providesServerFormDetailsFetcher(FormsRepositoryProvider formsRepositoryProvider, OpenRosaClientProvider formSourceProvider, ProjectsDataService projectsDataService) {
-        Project.Saved currentProject = projectsDataService.requireCurrentProject();
-        FormsRepository formsRepository = formsRepositoryProvider.create(currentProject.getUuid());
-        return new ServerFormsDetailsFetcher(formsRepository, formSourceProvider.create(currentProject.getUuid()));
-    }
-
-    @Provides
-    public Notifier providesNotifier(Application application, SettingsProvider settingsProvider, ProjectsRepository projectsRepository) {
-        return new NotificationManagerNotifier(application, settingsProvider, projectsRepository);
+    public Notifier providesNotifier(Application application, SettingsProvider settingsProvider, ProjectsRepository projectsRepository, UniqueIdGenerator uniqueIdGenerator) {
+        return new NotificationManagerNotifier(application, settingsProvider, projectsRepository, uniqueIdGenerator);
     }
 
     @Provides
@@ -428,7 +432,9 @@ public class AppDependencyModule {
             return null;
         };
 
-        return new InstancesDataService(getState(application), instanceSubmitScheduler, projectsDependencyProviderFactory, notifier, propertyManager, httpInterface, onUpdate);
+        InstanceUploader instanceUploader = new OpenRosaServerInstanceUploader(projectsDependencyProviderFactory, httpInterface);
+        InstanceSubmitter instanceSubmitter = new InstanceSubmitter(instanceUploader, projectsDependencyProviderFactory, propertyManager);
+        return new InstancesDataService(getState(application), instanceSubmitScheduler, projectsDependencyProviderFactory, notifier, instanceSubmitter, onUpdate);
     }
 
     @Provides
@@ -482,8 +488,8 @@ public class AppDependencyModule {
     }
 
     @Provides
-    public OpenRosaClientProvider providesFormSourceProvider(SettingsProvider settingsProvider, OpenRosaHttpInterface openRosaHttpInterface) {
-        return new OpenRosaClientProvider(settingsProvider::getUnprotectedSettings, openRosaHttpInterface);
+    public OpenRosaClientProvider providesFormSourceProvider(SettingsProvider settingsProvider, OpenRosaHttpInterface openRosaHttpInterface, InstallIDProvider installIDProvider) {
+        return new OpenRosaClientProvider(settingsProvider::getUnprotectedSettings, openRosaHttpInterface, installIDProvider);
     }
 
     @Provides
@@ -593,8 +599,8 @@ public class AppDependencyModule {
     }
 
     @Provides
-    public BlankFormListViewModel.Factory providesBlankFormListViewModel(FormsRepositoryProvider formsRepositoryProvider, InstancesRepositoryProvider instancesRepositoryProvider, Application application, FormsDataService formsDataService, Scheduler scheduler, SettingsProvider settingsProvider, ChangeLockProvider changeLockProvider, ProjectsDataService projectsDataService) {
-        return new BlankFormListViewModel.Factory(instancesRepositoryProvider.create(), application, formsDataService, scheduler, settingsProvider.getUnprotectedSettings(), projectsDataService.requireCurrentProject().getUuid());
+    public BlankFormListViewModel.Factory providesBlankFormListViewModel(InstancesRepositoryProvider instancesRepositoryProvider, Application application, FormsDataService formsDataService, Scheduler scheduler, SettingsProvider settingsProvider, ProjectsDataService projectsDataService, UniqueIdGenerator uniqueIdGenerator) {
+        return new BlankFormListViewModel.Factory(instancesRepositoryProvider.create(), application, formsDataService, scheduler, settingsProvider.getUnprotectedSettings(), projectsDataService.requireCurrentProject().getUuid(), uniqueIdGenerator);
     }
 
     @Provides
@@ -659,5 +665,11 @@ public class AppDependencyModule {
     @Provides
     public AudioPlayerFactory providesAudioPlayerFactory(Scheduler scheduler) {
         return new ViewModelAudioPlayerFactory(scheduler);
+    }
+
+    @Provides
+    @Singleton
+    public UniqueIdGenerator providesUniqueIdGenerator(SettingsProvider settingsProvider) {
+        return new SettingsUniqueIdGenerator(settingsProvider.getMetaSettings());
     }
 }

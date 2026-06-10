@@ -12,6 +12,7 @@ import org.odk.collect.entities.storage.Entity
 import org.odk.collect.entities.storage.EntityList
 import org.odk.collect.entities.storage.QueryException
 import org.odk.collect.entities.storage.getListNames
+import org.odk.collect.entities.storage.propertyNames
 import org.odk.collect.shared.Query
 
 abstract class EntitiesRepositoryTest {
@@ -826,5 +827,28 @@ abstract class EntitiesRepositoryTest {
         repository.updateList("blah", "abcd", false)
         assertThat(repository.getLists().size, equalTo(1))
         assertThat(repository.query("blah").size, equalTo(0))
+    }
+
+    @Test
+    fun `#cleanUpProperties removes list properties not in properties param`() {
+        val repository = buildSubject()
+
+        val wine = Entity.New(
+            "1",
+            "Léoville Barton 2008",
+            properties = listOf("vintage" to "2008", "rating" to "92")
+        )
+        repository.save("wines", wine)
+
+        repository.cleanUpProperties("wines", setOf("rating"))
+        assertThat(repository.query("wines")[0].propertyNames(), equalTo(listOf("rating")))
+    }
+
+    @Test
+    fun `#cleanUpProperties does nothing if list doesn't exist`() {
+        val repository = buildSubject()
+
+        repository.cleanUpProperties("wines", setOf("rating"))
+        assertThat(repository.getLists(), equalTo(emptyList()))
     }
 }

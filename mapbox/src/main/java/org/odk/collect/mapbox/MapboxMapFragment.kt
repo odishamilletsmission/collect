@@ -1,18 +1,15 @@
 package org.odk.collect.mapbox
 
 import android.graphics.Color
-import android.location.Location
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.startup.AppInitializer
-import com.google.android.gms.location.LocationListener
 import com.mapbox.android.gestures.MoveGestureDetector
 import com.mapbox.android.gestures.StandardScaleGestureDetector
 import com.mapbox.geojson.Point
@@ -32,11 +29,12 @@ import com.mapbox.maps.extension.style.sources.generated.RasterSource
 import com.mapbox.maps.extension.style.sources.generated.VectorSource
 import com.mapbox.maps.extension.style.sources.getSource
 import com.mapbox.maps.loader.MapboxMapsInitializer
-import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.animation.MapAnimationOptions.Companion.mapAnimationOptions
 import com.mapbox.maps.plugin.animation.flyTo
 import com.mapbox.maps.plugin.annotation.annotations
+import com.mapbox.maps.plugin.annotation.generated.PointAnnotation
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.PolygonAnnotationManager
 import com.mapbox.maps.plugin.annotation.generated.PolylineAnnotationManager
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
 import com.mapbox.maps.plugin.annotation.generated.createPolygonAnnotationManager
@@ -50,13 +48,9 @@ import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.gestures.addOnMapLongClickListener
 import com.mapbox.maps.plugin.gestures.addOnMoveListener
 import com.mapbox.maps.plugin.gestures.addOnScaleListener
-import com.mapbox.maps.plugin.locationcomponent.location
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.odk.collect.androidshared.utils.ScreenUtils
-import org.odk.collect.location.LocationClient
-import org.odk.collect.location.LocationClient.LocationClientListener
-import org.odk.collect.maps.LineDescription
 import org.odk.collect.maps.MapFragment
 import org.odk.collect.maps.MapFragment.ErrorListener
 import org.odk.collect.maps.MapFragment.FeatureListener
@@ -65,15 +59,17 @@ import org.odk.collect.maps.MapFragment.ReadyListener
 import org.odk.collect.maps.MapPoint
 import org.odk.collect.maps.MapViewModel
 import org.odk.collect.maps.MapViewModelMapFragment
-import org.odk.collect.maps.PolygonDescription
 import org.odk.collect.maps.Zoom
 import org.odk.collect.maps.ZoomObserver
+import org.odk.collect.maps.circles.CircleDescription
 import org.odk.collect.maps.layers.MapFragmentReferenceLayerUtils.getReferenceLayerFile
 import org.odk.collect.maps.layers.MbtilesFile
 import org.odk.collect.maps.layers.ReferenceLayerRepository
 import org.odk.collect.maps.markers.MarkerDescription
 import org.odk.collect.maps.markers.MarkerIconCreator
 import org.odk.collect.maps.markers.MarkerIconDescription
+import org.odk.collect.maps.traces.LineDescription
+import org.odk.collect.maps.traces.PolygonDescription
 import org.odk.collect.settings.SettingsProvider
 import org.odk.collect.shared.injection.ObjectProviderHost
 import timber.log.Timber
@@ -83,34 +79,25 @@ import java.io.IOException
 class MapboxMapFragment :
     MapViewModelMapFragment(),
     OnMapClickListener,
-    OnMapLongClickListener,
-    LocationListener,
-    LocationClientListener {
+    OnMapLongClickListener {
 
     private lateinit var mapView: MapView
     private lateinit var mapboxMap: MapboxMap
 
     private lateinit var pointAnnotationManager: PointAnnotationManager
     private lateinit var polylineAnnotationManager: PolylineAnnotationManager
-
+    private lateinit var polygonAnnotationManager: PolygonAnnotationManager
     private var mapReadyListener: ReadyListener? = null
-    private val gpsLocationReadyListeners = mutableListOf<ReadyListener>()
 
     private var nextFeatureId = 1
     private val features = mutableMapOf<Int, MapFeature>()
-
-    private var gpsLocationListener: PointListener? = null
     private var clickListener: PointListener? = null
     private var longPressListener: PointListener? = null
 
     private var featureClickListener: FeatureListener? = null
     private var featureDragEndListener: FeatureListener? = null
-
-    private var lastLocationProvider: String? = null
-    private var lastLocationFix: MapPoint? = null
     private var tileServer: TileHttpServer? = null
     private var referenceLayerFile: File? = null
-    private var clientWantsLocationUpdates = false
     private var topStyleLayerId: String? = null
 
     private val _mapViewModel by viewModels<MapViewModel> {
@@ -130,10 +117,6 @@ class MapboxMapFragment :
 
     private val referenceLayerRepository: ReferenceLayerRepository by lazy {
         (requireActivity().applicationContext as ObjectProviderHost).getObjectProvider().provide(ReferenceLayerRepository::class.java)
-    }
-
-    private val locationClient: LocationClient by lazy {
-        (requireActivity().applicationContext as ObjectProviderHost).getObjectProvider().provide(LocationClient::class.java)
     }
 
     override fun init(readyListener: ReadyListener?, errorListener: ErrorListener?) {
@@ -198,11 +181,14 @@ class MapboxMapFragment :
             .annotations
             .createPolylineAnnotationManager()
 
+        polygonAnnotationManager = mapView
+            .annotations
+            .createPolygonAnnotationManager()
+
         pointAnnotationManager = mapView
             .annotations
             .createPointAnnotationManager()
 
-        initLocationComponent()
         moveOrAnimateCamera(MapFragment.INITIAL_CENTER, false, MapFragment.INITIAL_ZOOM.toDouble())
 
         // If the screen is rotated before the map is ready, this fragment could already be detached,
@@ -250,16 +236,6 @@ class MapboxMapFragment :
         return mapView
     }
 
-    override fun onResume() {
-        super.onResume()
-        enableLocationUpdates(clientWantsLocationUpdates)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        enableLocationUpdates(false)
-    }
-
     override fun onDestroy() {
         tileServer?.destroy()
         MarkerIconCreator.clearCache()
@@ -291,8 +267,18 @@ class MapboxMapFragment :
         return _mapViewModel
     }
 
-    override fun addMarker(markerDescription: MarkerDescription): Int {
-        return addMarkers(listOf(markerDescription)).first()
+    override fun updateMarker(
+        featureId: Int,
+        markerDescription: MarkerDescription
+    ) {
+        features[featureId]?.dispose()
+        val pointAnnotation = MapUtils.createPointAnnotation(
+            pointAnnotationManager,
+            requireContext(),
+            markerDescription
+        )
+
+        addMarker(featureId, markerDescription, pointAnnotation)
     }
 
     override fun addMarkers(markers: List<MarkerDescription>): List<Int> {
@@ -304,21 +290,30 @@ class MapboxMapFragment :
             .zip(pointAnnotations.asSequence())
             .forEach { (marker, pointAnnotation) ->
                 val featureId = nextFeatureId++
-                val markerFeature = MarkerFeature(
-                    requireContext(),
-                    pointAnnotationManager,
-                    pointAnnotation,
-                    featureId,
-                    featureClickListener,
-                    featureDragEndListener,
-                    marker.point
-                )
-
                 featureIds.add(featureId)
-                features[featureId] = markerFeature
+
+                addMarker(featureId, marker, pointAnnotation)
             }
 
         return featureIds
+    }
+
+    private fun addMarker(
+        featureId: Int,
+        marker: MarkerDescription,
+        pointAnnotation: PointAnnotation
+    ) {
+        val markerFeature = MarkerFeature(
+            requireContext(),
+            pointAnnotationManager,
+            pointAnnotation,
+            featureId,
+            featureClickListener,
+            featureDragEndListener,
+            marker.point
+        )
+
+        features[featureId] = markerFeature
     }
 
     override fun setMarkerIcon(featureId: Int, markerIconDescription: MarkerIconDescription) {
@@ -339,6 +334,19 @@ class MapboxMapFragment :
 
     override fun addPolyLine(lineDescription: LineDescription): Int {
         val featureId = nextFeatureId++
+        addPolyLine(featureId, lineDescription)
+        return featureId
+    }
+
+    override fun updatePolyLine(featureId: Int, lineDescription: LineDescription) {
+        features[featureId]?.dispose()
+        addPolyLine(featureId, lineDescription)
+    }
+
+    private fun addPolyLine(
+        featureId: Int,
+        lineDescription: LineDescription
+    ) {
         if (lineDescription.draggable) {
             features[featureId] = DynamicPolyLineFeature(
                 requireContext(),
@@ -357,36 +365,61 @@ class MapboxMapFragment :
                 lineDescription
             )
         }
-        return featureId
     }
 
     override fun addPolygon(polygonDescription: PolygonDescription): Int {
         val featureId = nextFeatureId++
-        features[featureId] = StaticPolygonFeature(
-            mapView.annotations.createPolygonAnnotationManager(),
-            polygonDescription,
-            featureClickListener,
-            featureId
-        )
+        addPolygon(featureId, polygonDescription)
 
         return featureId
     }
 
-    override fun appendPointToPolyLine(featureId: Int, point: MapPoint) {
-        val feature = features[featureId]
-        if (feature is DynamicPolyLineFeature) {
-            feature.appendPoint(point)
+    private fun addPolygon(
+        featureId: Int,
+        polygonDescription: PolygonDescription
+    ) {
+        if (polygonDescription.draggable) {
+            features[featureId] = DynamicPolygonFeature(
+                requireContext(),
+                pointAnnotationManager,
+                polygonAnnotationManager,
+                polylineAnnotationManager,
+                featureId,
+                featureClickListener,
+                featureDragEndListener,
+                polygonDescription
+            )
+        } else {
+            features[featureId] = StaticPolygonFeature(
+                polygonAnnotationManager,
+                polylineAnnotationManager,
+                polygonDescription,
+                featureClickListener,
+                featureId
+            )
         }
     }
 
-    override fun removePolyLineLastPoint(featureId: Int) {
-        val feature = features[featureId]
-        if (feature is DynamicPolyLineFeature) {
-            feature.removeLastPoint()
-        }
+    override fun updatePolygon(
+        featureId: Int,
+        polygonDescription: PolygonDescription
+    ) {
+        features[featureId]?.dispose()
+        addPolygon(featureId, polygonDescription)
     }
 
-    override fun getPolyLinePoints(featureId: Int): List<MapPoint> {
+    override fun addCircle(circleDescription: CircleDescription): Int {
+        return -1
+    }
+
+    override fun updateCircle(
+        featureId: Int,
+        circleDescription: CircleDescription
+    ) {
+
+    }
+
+    override fun getPolyPoints(featureId: Int): List<MapPoint> {
         val feature = features[featureId]
         return if (feature is LineFeature) {
             feature.points
@@ -402,6 +435,10 @@ class MapboxMapFragment :
 
         features.clear()
         nextFeatureId = 1
+    }
+
+    override fun clearFeatures(ids: List<Int>) {
+        ids.forEach { features.remove(it)?.dispose() }
     }
 
     override fun setClickListener(listener: PointListener?) {
@@ -420,37 +457,6 @@ class MapboxMapFragment :
         featureDragEndListener = listener
     }
 
-    override fun setGpsLocationEnabled(enabled: Boolean) {
-        if (enabled != clientWantsLocationUpdates) {
-            clientWantsLocationUpdates = enabled
-            enableLocationUpdates(clientWantsLocationUpdates)
-        }
-    }
-
-    override fun getGpsLocation(): MapPoint? {
-        return lastLocationFix
-    }
-
-    override fun getLocationProvider(): String? {
-        return lastLocationProvider
-    }
-
-    override fun runOnGpsLocationReady(listener: ReadyListener) {
-        if (lastLocationFix != null) {
-            listener.onReady(this)
-        } else {
-            gpsLocationReadyListeners.add(listener)
-        }
-    }
-
-    override fun setGpsLocationListener(listener: PointListener?) {
-        gpsLocationListener = listener
-    }
-
-    override fun setRetainMockAccuracy(retainMockAccuracy: Boolean) {
-        locationClient.setRetainMockAccuracy(retainMockAccuracy)
-    }
-
     override fun onMapClick(point: Point): Boolean {
         clickListener?.onPoint(MapPoint(point.latitude(), point.longitude()))
 
@@ -464,51 +470,6 @@ class MapboxMapFragment :
     override fun onMapLongClick(point: Point): Boolean {
         longPressListener?.onPoint(MapPoint(point.latitude(), point.longitude()))
         return true
-    }
-
-    override fun onLocationChanged(location: Location) {
-        lastLocationFix = MapPoint(
-            location.latitude,
-            location.longitude,
-            location.altitude,
-            location.accuracy.toDouble()
-        )
-        lastLocationProvider = location.provider
-        Timber.i(
-            "Received location update: %s (%s)",
-            lastLocationFix,
-            lastLocationProvider
-        )
-        for (listener in gpsLocationReadyListeners) {
-            listener.onReady(this)
-        }
-        gpsLocationReadyListeners.clear()
-        gpsLocationListener?.onPoint(lastLocationFix!!)
-    }
-
-    @SuppressWarnings("MissingPermission") // permission checks for location services are handled in widgets
-    private fun enableLocationUpdates(enabled: Boolean) {
-        if (enabled) {
-            Timber.i("Starting LocationClient %s (for MapFragment %s)", locationClient, this)
-            locationClient.start(this)
-        } else {
-            Timber.i("Stopping LocationClient %s (for MapFragment %s)", locationClient, this)
-            locationClient.stop()
-        }
-
-        mapView.location.enabled = enabled
-    }
-
-    private fun initLocationComponent() {
-        mapView.location.updateSettings {
-            this.enabled = true
-            this.locationPuck = LocationPuck2D(
-                AppCompatResources.getDrawable(
-                    requireContext(),
-                    org.odk.collect.maps.R.drawable.ic_crosshairs
-                )
-            )
-        }
     }
 
     private fun moveOrAnimateCamera(point: MapPoint, animate: Boolean, zoom: Double? = getZoom()) {
@@ -623,17 +584,6 @@ class MapboxMapFragment :
         if (mapboxMap.getStyle()?.getSource(source.sourceId) == null) {
             mapboxMap.getStyle()?.addSource(source)
         }
-    }
-
-    override fun onClientStart() {
-        Timber.i("Requesting location updates (to %s)", this)
-        locationClient.requestLocationUpdates(this)
-    }
-
-    override fun onClientStartFailure() {
-    }
-
-    override fun onClientStop() {
     }
 
     companion object {

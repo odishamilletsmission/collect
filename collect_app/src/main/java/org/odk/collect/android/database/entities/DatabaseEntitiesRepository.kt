@@ -19,8 +19,11 @@ import org.odk.collect.db.sqlite.RowNumbers.invalidateRowNumbers
 import org.odk.collect.db.sqlite.RowNumbers.rawQueryWithRowNumber
 import org.odk.collect.db.sqlite.SQLiteColumns.ROW_NUMBER
 import org.odk.collect.db.sqlite.SQLiteDatabaseExt.addColumn
+import org.odk.collect.db.sqlite.SQLiteDatabaseExt.copyTableContent
+import org.odk.collect.db.sqlite.SQLiteDatabaseExt.dropTable
 import org.odk.collect.db.sqlite.SQLiteDatabaseExt.getColumnNames
 import org.odk.collect.db.sqlite.SQLiteDatabaseExt.query
+import org.odk.collect.db.sqlite.SQLiteDatabaseExt.renameTable
 import org.odk.collect.db.sqlite.SynchronizedDatabaseConnection
 import org.odk.collect.db.sqlite.toSql
 import org.odk.collect.entities.javarosa.parse.EntitySchema
@@ -73,8 +76,7 @@ class DatabaseEntitiesRepository(context: Context, dbPath: String, private val c
             createList(list)
         }
 
-        updatePropertyColumns(list, entities.first())
-
+        addMissingPropertyColumns(list, entities.first())
         databaseConnection.transaction {
             entities.forEach { entity ->
                 val existing = if (listExists) {
@@ -172,6 +174,50 @@ class DatabaseEntitiesRepository(context: Context, dbPath: String, private val c
             readableDatabase
                 .query(ListsTable.TABLE_NAME, "${ListsTable.COLUMN_NAME} = ?", arrayOf(list))
                 .first { mapCursorRowToEntityList(it) }
+        }
+    }
+
+    override fun cleanUpProperties(
+        list: String,
+        properties: Set<String>
+    ) {
+        if (!listExists(list)) {
+            return
+        }
+
+        databaseConnection.resetTransaction {
+            val columnNames = this.getColumnNames(quote(list))
+
+            val expectedColumns = properties
+                .map { EntitiesTable.getPropertyColumn(it) }
+                .distinctBy { it.lowercase() }
+
+            val removedColumns = columnNames
+                .filter { it.startsWith(EntitiesTable.COLUMN_PROPERTY_PREFIX, ignoreCase = true) }
+                .filterNot { columnName ->
+                    expectedColumns.any {
+                        it.equals(
+                            columnName,
+                            ignoreCase = true
+                        )
+                    }
+                }
+
+            val remainingColumns = columnNames - removedColumns.toSet()
+            val tempTable = "${list}_temp"
+            createListTable(this, tempTable)
+            addPropertyColumns(
+                this,
+                tempTable,
+                remainingColumns.filter {
+                    it.startsWith(EntitiesTable.COLUMN_PROPERTY_PREFIX, ignoreCase = true)
+                },
+            )
+
+            copyTableContent(list, tempTable, remainingColumns)
+            dropTable(list)
+            renameTable(tempTable, list)
+            indexListTable(this, list)
         }
     }
 
@@ -275,63 +321,78 @@ class DatabaseEntitiesRepository(context: Context, dbPath: String, private val c
 
     private fun createList(list: String) {
         databaseConnection.resetTransaction {
-            val contentValues = ContentValues()
-            contentValues.put(ListsTable.COLUMN_NAME, list)
-            insertOrThrow(
-                ListsTable.TABLE_NAME,
-                null,
-                contentValues
-            )
-
-            execSQL(
-                """
-                CREATE TABLE IF NOT EXISTS "$list" (
-                    $_ID integer PRIMARY KEY,
-                    ${EntitiesTable.COLUMN_ID} text,
-                    ${EntitiesTable.COLUMN_LABEL} text,
-                    ${EntitiesTable.COLUMN_VERSION} integer,
-                    ${EntitiesTable.COLUMN_TRUNK_VERSION} integer,
-                    ${EntitiesTable.COLUMN_BRANCH_ID} text,
-                    ${EntitiesTable.COLUMN_STATE} integer NOT NULL
-                );
-                """.trimIndent()
-            )
-
-            execSQL(
-                """
-                CREATE UNIQUE INDEX IF NOT EXISTS "${list}_unique_id_index" ON "$list" (${EntitiesTable.COLUMN_ID});
-                """.trimIndent()
-            )
+            createList(this, list)
         }
     }
 
-    private fun updatePropertyColumns(list: String, entity: Entity) {
-        val columnNames = databaseConnection.withConnection {
-            readableDatabase.getColumnNames(quote(list))
+    private fun createList(db: SQLiteDatabase, list: String) {
+        val contentValues = ContentValues()
+        contentValues.put(ListsTable.COLUMN_NAME, list)
+        db.insertOrThrow(
+            ListsTable.TABLE_NAME,
+            null,
+            contentValues
+        )
+
+        createListTable(db, list)
+        indexListTable(db, list)
+    }
+
+    private fun createListTable(db: SQLiteDatabase, list: String) {
+        db.execSQL(
+            """
+                    CREATE TABLE "$list" (
+                        $_ID integer PRIMARY KEY,
+                        ${EntitiesTable.COLUMN_ID} text,
+                        ${EntitiesTable.COLUMN_LABEL} text,
+                        ${EntitiesTable.COLUMN_VERSION} integer,
+                        ${EntitiesTable.COLUMN_TRUNK_VERSION} integer,
+                        ${EntitiesTable.COLUMN_BRANCH_ID} text,
+                        ${EntitiesTable.COLUMN_STATE} integer NOT NULL
+                    );
+                    """.trimIndent()
+        )
+    }
+
+    private fun indexListTable(db: SQLiteDatabase, list: String) {
+        db.execSQL(
+            """
+                CREATE UNIQUE INDEX "${list}_unique_id_index" ON "$list" (${EntitiesTable.COLUMN_ID});
+                """.trimIndent()
+        )
+    }
+
+    private fun addMissingPropertyColumns(list: String, entity: Entity) {
+        databaseConnection.resetTransaction {
+            val columnNames = getColumnNames(quote(list))
+
+            val expectedColumns = entity.properties
+                .map { EntitiesTable.getPropertyColumn(it.first) }
+                .distinctBy { it.lowercase() }
+
+            val newColumns = expectedColumns
+                .filterNot { columnName ->
+                    columnNames.any {
+                        it.equals(
+                            columnName,
+                            ignoreCase = true
+                        )
+                    }
+                }
+
+            if (newColumns.isNotEmpty()) {
+                addPropertyColumns(this, list, newColumns)
+            }
         }
+    }
 
-        val missingColumns = entity.properties
-            .map { EntitiesTable.getPropertyColumn(it.first) }
-            .distinctBy { it.lowercase() }
-            .filterNot { columnName ->
-                columnNames.any {
-                    it.equals(
-                        columnName,
-                        ignoreCase = true
-                    )
-                }
-            }
-
-        if (missingColumns.isNotEmpty()) {
-            databaseConnection.resetTransaction {
-                missingColumns.forEach {
-                    execSQL(
-                        """
-                        ALTER TABLE "$list" ADD "$it" text NOT NULL DEFAULT "";
-                        """.trimIndent()
-                    )
-                }
-            }
+    private fun addPropertyColumns(
+        writableDatabase: SQLiteDatabase,
+        list: String,
+        columns: List<String>
+    ) {
+        columns.forEach {
+            writableDatabase.addColumn(list, it, "text NOT NULL", default = "''")
         }
     }
 

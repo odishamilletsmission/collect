@@ -6,6 +6,7 @@ import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.odk.collect.android.support.rules.CollectTestRule
+import org.odk.collect.android.support.rules.PageComposeRule
 import org.odk.collect.android.support.rules.TestRuleChain.chain
 
 @RunWith(AndroidJUnit4::class)
@@ -28,7 +29,7 @@ class SaveIncompleteTest {
 
             .clickDrafts(1)
             .clickOnForm("Two Question Save Incomplete")
-            .assertText("Dez")
+            .assertAnswer("Dez")
     }
 
     @Test
@@ -42,6 +43,25 @@ class SaveIncompleteTest {
 
             .clickDrafts(1)
             .clickOnForm("Two Question Save Incomplete Required")
-            .assertText("Dez")
+            .assertAnswer("Dez")
+    }
+
+    @Test
+    fun savingDraft_doesNotPruneNonRelevantNodes() {
+        rule.startAtMainMenu()
+            .copyForm("one-question-relevance.xml")
+            .startBlankForm("One Question Relevance")
+            .clickOnText("Yes")
+            .swipeToNextQuestion("what is your age")
+            .answerQuestion("what is your age", "30")
+            .swipeToPreviousQuestion("Do you want to continue?")
+            .clickOnText("No")
+            .pressBackAndSaveAsDraft()
+            .clickDrafts(1)
+            .clickOnForm("One Question Relevance")
+            .clickOnQuestion("Do you want to continue?")
+            .clickOnText("Yes")
+            .swipeToNextQuestion("what is your age")
+            .assertAnswer("what is your age", "30")
     }
 }

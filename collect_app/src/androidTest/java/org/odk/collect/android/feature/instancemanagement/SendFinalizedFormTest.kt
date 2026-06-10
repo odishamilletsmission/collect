@@ -16,6 +16,7 @@ import org.odk.collect.android.support.pages.OkDialog
 import org.odk.collect.android.support.pages.ProjectSettingsPage
 import org.odk.collect.android.support.pages.SendFinalizedFormPage
 import org.odk.collect.android.support.rules.CollectTestRule
+import org.odk.collect.android.support.rules.PageComposeRule
 import org.odk.collect.android.support.rules.TestRuleChain.chain
 import org.odk.collect.androidtest.RecordedIntentsRule
 
@@ -23,6 +24,7 @@ import org.odk.collect.androidtest.RecordedIntentsRule
 class SendFinalizedFormTest {
 
     private val testDependencies = TestDependencies()
+
     private val rule = CollectTestRule(useDemoProject = false)
 
     @get:Rule
@@ -38,7 +40,7 @@ class SendFinalizedFormTest {
             .fillOutAndFinalize(QuestionAndAnswer("what is your age", "52"))
             .clickSendFinalizedForm(1)
             .clickOnForm("One Question")
-            .assertText("52")
+            .assertAnswer("52")
     }
 
     @Test
@@ -74,7 +76,7 @@ class SendFinalizedFormTest {
             .pressBack(MainMenuPage())
             .clickViewSentForm(1)
             .clickOnForm("One Question")
-            .assertText("123")
+            .assertAnswer("123")
             .assertText(org.odk.collect.strings.R.string.exit)
     }
 
@@ -96,7 +98,7 @@ class SendFinalizedFormTest {
             .assertNumberOfFinalizedForms(1)
             .clickViewSentForm(1)
             .clickOnForm("One Question")
-            .assertText("123")
+            .assertAnswer("123")
     }
 
     @Test
@@ -183,5 +185,26 @@ class SendFinalizedFormTest {
 
         assertThat((firstFormRootElement.getChild(0) as Element).getChild(0), equalTo("123"))
         assertThat((secondFormRootElement.getChild(0) as Element).getChild(0), equalTo("124"))
+    }
+
+    @Test
+    fun sentFormDoesNotIncludeNonRelevantNodes() {
+        testDependencies.server.addForm("one-question-relevance.xml")
+
+        rule.withProject(testDependencies.server.url, matchExactly = true)
+            .startBlankForm("One Question Relevance")
+            .clickOnText("Yes")
+            .swipeToNextQuestion("what is your age")
+            .swipeToPreviousQuestion("Do you want to continue?")
+            .clickOnText("No")
+            .swipeToEndScreen()
+            .clickFinalize()
+            .clickSendFinalizedForm(1)
+            .clickSelectAll()
+            .clickSendSelected()
+
+        val file = testDependencies.server.submissions[0]
+        val instanceRootElement = XFormParser.getXMLDocument(file.inputStream().reader()).rootElement
+        assertThat(instanceRootElement.indexOf(null, "age", 0), equalTo(-1))
     }
 }

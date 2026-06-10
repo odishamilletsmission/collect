@@ -5,9 +5,8 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.recyclerview.widget.RecyclerView
-import org.odk.collect.android.R
 import org.odk.collect.android.databinding.SortItemLayoutBinding
-import org.odk.collect.androidshared.system.ContextUtils.getThemeAttributeValue
+import org.odk.collect.androidshared.system.ContextExt.getThemeAttributeValue
 import java.util.function.Consumer
 
 class FormListSortingAdapter(
@@ -42,10 +41,10 @@ class FormListSortingAdapter(
     }
 
     private fun selectItem(binding: SortItemLayoutBinding) {
-        binding.title.setTextColor(getThemeAttributeValue(binding.root.context, com.google.android.material.R.attr.colorAccent))
+        binding.title.setTextColor(getThemeAttributeValue(binding.root.context, androidx.appcompat.R.attr.colorPrimary))
         DrawableCompat.setTintList(
             binding.icon.drawable,
-            ColorStateList.valueOf(getThemeAttributeValue(binding.root.context, com.google.android.material.R.attr.colorAccent))
+            ColorStateList.valueOf(getThemeAttributeValue(binding.root.context, androidx.appcompat.R.attr.colorPrimary))
         )
     }
 

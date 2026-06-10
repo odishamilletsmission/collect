@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlinAndroid)
-    alias(libs.plugins.kotlinKapt)
+    alias(libs.plugins.kotlinKsp)
+    alias(libs.plugins.composeCompiler)
 }
 
 apply(from = "../config/quality.gradle")
@@ -13,7 +13,6 @@ android {
         minSdk = libs.versions.minSdk.get().toInt()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildTypes {
@@ -63,7 +62,18 @@ dependencies {
     implementation(libs.playServicesLocation)
     implementation(libs.androidxFragmentKtx)
     implementation(libs.dagger)
-    kapt(libs.daggerCompiler)
+    ksp(libs.daggerCompiler)
+    implementation(libs.javarosa) {
+        exclude(group = "joda-time")
+        exclude(group = "org.hamcrest", module = "hamcrest-all")
+    }
+
+    val composeBom = platform(libs.androidxComposeBom)
+    implementation(composeBom)
+    implementation(libs.androidXComposeMaterial)
+    implementation(libs.androidXComposeMaterialIcons)
+    implementation(libs.androidXComposePreview)
+    debugImplementation(libs.androidXComposeTooling)
 
     debugImplementation(project(":fragments-test"))
 
@@ -77,4 +87,6 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidxTestEspressoCore)
     testImplementation(libs.androidxArchCoreTesting)
+    testImplementation(libs.androidXComposeUiTestJunit4)
+    debugImplementation(libs.androidXComposeUiTestManifest)
 }

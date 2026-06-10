@@ -30,12 +30,15 @@ import org.odk.collect.android.injection.DaggerUtils
 import org.odk.collect.android.injection.config.ProjectDependencyModuleFactory
 import org.odk.collect.android.instancemanagement.InstancesDataService
 import org.odk.collect.android.projects.ProjectsDataService
+import org.odk.collect.androidshared.ui.EdgeToEdge.setView
 import org.odk.collect.androidshared.ui.FragmentFactoryBuilder
 import org.odk.collect.androidshared.ui.ListFragmentStateAdapter
 import org.odk.collect.androidshared.utils.AppBarUtils.setupAppBarLayout
+import org.odk.collect.androidshared.utils.UniqueIdGenerator
 import org.odk.collect.async.Scheduler
 import org.odk.collect.forms.instances.InstancesRepository
 import org.odk.collect.shared.settings.Settings
+import org.odk.collect.strings.R
 import org.odk.collect.strings.localization.LocalizedActivity
 import javax.inject.Inject
 
@@ -55,6 +58,9 @@ class DeleteFormsActivity : LocalizedActivity() {
     @Inject
     lateinit var instanceDataService: InstancesDataService
 
+    @Inject
+    lateinit var uniqueIdGenerator: UniqueIdGenerator
+
     private lateinit var binding: TabsLayoutBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,7 +76,8 @@ class DeleteFormsActivity : LocalizedActivity() {
             scheduler,
             projectDependencyModule.generalSettings,
             projectId,
-            instanceDataService
+            instanceDataService,
+            uniqueIdGenerator
         )
 
         val viewModelProvider = ViewModelProvider(this, viewModelFactory)
@@ -87,8 +94,8 @@ class DeleteFormsActivity : LocalizedActivity() {
 
         super.onCreate(savedInstanceState)
         binding = TabsLayoutBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        setupAppBarLayout(this, getString(org.odk.collect.strings.R.string.manage_files))
+        setView(binding.root, false)
+        setupAppBarLayout(this, getString(R.string.manage_files))
         setUpViewPager(blankFormsListViewModel)
     }
 
@@ -126,7 +133,8 @@ class DeleteFormsActivity : LocalizedActivity() {
         private val scheduler: Scheduler,
         private val generalSettings: Settings,
         private val projectId: String,
-        private val instancesDataService: InstancesDataService
+        private val instancesDataService: InstancesDataService,
+        private val uniqueIdGenerator: UniqueIdGenerator
     ) :
         ViewModelProvider.Factory {
 
@@ -139,7 +147,8 @@ class DeleteFormsActivity : LocalizedActivity() {
                     scheduler,
                     generalSettings,
                     projectId,
-                    showAllVersions = true
+                    showAllVersions = true,
+                    uniqueIdGenerator
                 )
 
                 SavedFormListViewModel::class.java -> SavedFormListViewModel(

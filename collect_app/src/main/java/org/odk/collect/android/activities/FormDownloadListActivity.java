@@ -14,6 +14,8 @@
 
 package org.odk.collect.android.activities;
 
+import static org.odk.collect.androidshared.ui.EdgeToEdge.setView;
+
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -42,7 +44,6 @@ import org.odk.collect.android.formlists.sorting.FormListSortingOption;
 import org.odk.collect.android.formmanagement.FormSourceExceptionMapper;
 import org.odk.collect.android.formmanagement.FormsDataService;
 import org.odk.collect.android.formmanagement.ServerFormDetails;
-import org.odk.collect.android.formmanagement.ServerFormsDetailsFetcher;
 import org.odk.collect.android.formmanagement.download.FormDownloadException;
 import org.odk.collect.android.fragments.dialogs.FormsDownloadResultDialog;
 import org.odk.collect.android.injection.DaggerUtils;
@@ -122,9 +123,6 @@ public class FormDownloadListActivity extends FormListActivity implements FormLi
     WebCredentialsUtils webCredentialsUtils;
 
     @Inject
-    ServerFormsDetailsFetcher serverFormsDetailsFetcher;
-
-    @Inject
     NetworkStateProvider connectivityProvider;
 
     @Inject
@@ -139,7 +137,7 @@ public class FormDownloadListActivity extends FormListActivity implements FormLi
         super.onCreate(savedInstanceState);
         DaggerUtils.getComponent(this).inject(this);
 
-        setContentView(R.layout.form_download_list);
+        setView(this, R.layout.form_download_list, false);
         setTitle(getString(org.odk.collect.strings.R.string.get_forms));
 
         viewModel = new ViewModelProvider(this, new FormDownloadListViewModel.Factory())
@@ -294,12 +292,12 @@ public class FormDownloadListActivity extends FormListActivity implements FormLi
 
             if (viewModel.isDownloadOnlyMode()) {
                 // Handle external app download case with different server
-                downloadFormListTask = new DownloadFormListTask(serverFormsDetailsFetcher);
+                downloadFormListTask = new DownloadFormListTask();
                 downloadFormListTask.setAlternateCredentials(webCredentialsUtils, viewModel.getUrl(), viewModel.getUsername(), viewModel.getPassword());
                 downloadFormListTask.setDownloaderListener(this);
                 downloadFormListTask.execute();
             } else {
-                downloadFormListTask = new DownloadFormListTask(serverFormsDetailsFetcher);
+                downloadFormListTask = new DownloadFormListTask();
                 downloadFormListTask.setDownloaderListener(this);
                 downloadFormListTask.execute();
             }
@@ -464,7 +462,7 @@ public class FormDownloadListActivity extends FormListActivity implements FormLi
         }
 
         ServerFormDetails form = viewModel.getFormDetailsByFormId().get(formId);
-        return form.isNotOnDevice() || form.isUpdated();
+        return form.getType() != ServerFormDetails.Type.OnDevice;
     }
 
     /**

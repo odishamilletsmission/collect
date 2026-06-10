@@ -5,19 +5,22 @@ import androidx.navigation.fragment.NavHostFragment
 import org.odk.collect.analytics.Analytics
 import org.odk.collect.android.R
 import org.odk.collect.android.activities.FormEntryViewModelFactory
+import org.odk.collect.android.application.CollectComposeThemeProvider
 import org.odk.collect.android.entities.EntitiesRepositoryProvider
 import org.odk.collect.android.formentry.FormOpeningMode
 import org.odk.collect.android.formentry.FormSessionRepository
 import org.odk.collect.android.formentry.repeats.DeleteRepeatDialogFragment
 import org.odk.collect.android.injection.DaggerUtils
+import org.odk.collect.android.injection.config.ProjectDependencyModuleFactory
 import org.odk.collect.android.instancemanagement.InstancesDataService
-import org.odk.collect.android.instancemanagement.autosend.AutoSendSettingsProvider
+import org.odk.collect.android.instancemanagement.send.autosend.AutoSendSettingsProvider
 import org.odk.collect.android.projects.ProjectsDataService
 import org.odk.collect.android.utilities.ChangeLockProvider
 import org.odk.collect.android.utilities.FormsRepositoryProvider
 import org.odk.collect.android.utilities.InstancesRepositoryProvider
 import org.odk.collect.android.utilities.MediaUtils
 import org.odk.collect.android.utilities.SavepointsRepositoryProvider
+import org.odk.collect.androidshared.ui.EdgeToEdge.setView
 import org.odk.collect.androidshared.ui.FragmentFactoryBuilder
 import org.odk.collect.async.Scheduler
 import org.odk.collect.audiorecorder.recording.AudioRecorder
@@ -30,7 +33,7 @@ import org.odk.collect.settings.SettingsProvider
 import org.odk.collect.strings.localization.LocalizedActivity
 import javax.inject.Inject
 
-class FormHierarchyFragmentHostActivity : LocalizedActivity() {
+class FormHierarchyFragmentHostActivity : LocalizedActivity(), CollectComposeThemeProvider {
 
     @Inject
     lateinit var scheduler: Scheduler
@@ -83,10 +86,12 @@ class FormHierarchyFragmentHostActivity : LocalizedActivity() {
     @Inject
     lateinit var changeLockProvider: ChangeLockProvider
 
+    @Inject
+    lateinit var projectDependencyModuleFactory: ProjectDependencyModuleFactory
+
     private val sessionId by lazy { intent.getStringExtra(EXTRA_SESSION_ID)!! }
     private val viewModelFactory by lazy {
         FormEntryViewModelFactory(
-            this,
             FormOpeningMode.EDIT_SAVED,
             sessionId,
             scheduler,
@@ -106,7 +111,8 @@ class FormHierarchyFragmentHostActivity : LocalizedActivity() {
             QRCodeCreatorImpl(),
             HtmlPrinter(),
             instancesDataService,
-            changeLockProvider
+            changeLockProvider,
+            projectDependencyModuleFactory
         )
     }
 
@@ -136,7 +142,7 @@ class FormHierarchyFragmentHostActivity : LocalizedActivity() {
             return
         } else {
             super.onCreate(savedInstanceState)
-            setContentView(R.layout.hierarchy_host_layout)
+            setView(R.layout.hierarchy_host_layout, false)
 
             val navHostFragment =
                 supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment

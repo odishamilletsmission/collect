@@ -5,6 +5,7 @@ import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.odk.collect.maps.traces.LineDescription
 
 @RunWith(AndroidJUnit4::class)
 class LineDescriptionTest {
@@ -45,14 +46,8 @@ class LineDescriptionTest {
     }
 
     @Test
-    fun `getStrokeColor returns the default color when the passed one is invalid`() {
-        val lineDescription = LineDescription(strokeColor = "blah")
-        assertThat(lineDescription.getStrokeColor(), equalTo(MapConsts.DEFAULT_STROKE_COLOR))
-    }
-
-    @Test
-    fun `getStrokeColor returns custom color when it is valid`() {
-        val lineDescription = LineDescription(strokeColor = "#aaccee")
+    fun `getStrokeColor returns custom color`() {
+        val lineDescription = LineDescription(strokeColor = -5583634)
         assertThat(lineDescription.getStrokeColor(), equalTo(-5583634))
     }
 }

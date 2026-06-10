@@ -14,7 +14,9 @@
 
 package org.odk.collect.osmdroid;
 
-import static androidx.core.graphics.drawable.DrawableKt.toBitmap;
+import static androidx.core.graphics.drawable.BitmapDrawableKt.toDrawable;
+import static org.odk.collect.maps.markers.MarkerIconCreator.toBitmap;
+import static org.odk.collect.maps.traces.TraceDescriptionKt.getMarkersForPoints;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -25,7 +27,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
-import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.LayoutInflater;
@@ -34,28 +35,26 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.google.android.gms.location.LocationListener;
-
-import org.odk.collect.androidshared.system.ContextUtils;
-import org.odk.collect.location.LocationClient;
-import org.odk.collect.maps.LineDescription;
+import org.jetbrains.annotations.NotNull;
+import org.odk.collect.androidshared.system.ContextExt;
 import org.odk.collect.maps.MapConfigurator;
 import org.odk.collect.maps.MapFragment;
 import org.odk.collect.maps.MapPoint;
 import org.odk.collect.maps.MapViewModel;
 import org.odk.collect.maps.MapViewModelMapFragment;
-import org.odk.collect.maps.PolygonDescription;
 import org.odk.collect.maps.Zoom;
 import org.odk.collect.maps.ZoomObserver;
+import org.odk.collect.maps.circles.CircleDescription;
 import org.odk.collect.maps.layers.MapFragmentReferenceLayerUtils;
 import org.odk.collect.maps.layers.ReferenceLayerRepository;
 import org.odk.collect.maps.markers.MarkerDescription;
 import org.odk.collect.maps.markers.MarkerIconCreator;
 import org.odk.collect.maps.markers.MarkerIconDescription;
+import org.odk.collect.maps.traces.LineDescription;
+import org.odk.collect.maps.traces.PolygonDescription;
 import org.odk.collect.settings.SettingsProvider;
 import org.osmdroid.api.IGeoPoint;
 import org.osmdroid.events.MapListener;
@@ -73,9 +72,6 @@ import org.osmdroid.views.overlay.Polygon;
 import org.osmdroid.views.overlay.Polyline;
 import org.osmdroid.views.overlay.ScaleBarOverlay;
 import org.osmdroid.views.overlay.TilesOverlay;
-import org.osmdroid.views.overlay.mylocation.IMyLocationConsumer;
-import org.osmdroid.views.overlay.mylocation.IMyLocationProvider;
-import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -92,17 +88,13 @@ import timber.log.Timber;
 /**
  * A MapFragment drawn by OSMDroid.
  */
-public class OsmDroidMapFragment extends MapViewModelMapFragment implements
-        LocationListener, LocationClient.LocationClientListener {
+public class OsmDroidMapFragment extends MapViewModelMapFragment {
 
     // Bundle keys understood by applyConfig().
     public static final String KEY_WEB_MAP_SERVICE = "WEB_MAP_SERVICE";
 
     @Inject
     ReferenceLayerRepository referenceLayerRepository;
-
-    @Inject
-    LocationClient locationClient;
 
     @Inject
     MapConfigurator mapConfigurator;
@@ -114,14 +106,10 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
     private ReadyListener readyListener;
     private PointListener clickListener;
     private PointListener longPressListener;
-    private PointListener gpsLocationListener;
     private FeatureListener featureClickListener;
     private FeatureListener dragEndListener;
-    private MyLocationNewOverlay myLocationOverlay;
-    private OsmLocationClientWrapper osmLocationClientWrapper;
     private int nextFeatureId = 1;
     private final Map<Integer, MapFeature> features = new HashMap<>();
-    private boolean clientWantsLocationUpdates;
     private IGeoPoint lastMapCenter;
     private WebMapService webMapService;
     private File referenceLayerFile;
@@ -152,18 +140,6 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
         };
 
         mapViewModel = new ViewModelProvider(this, viewModelFactory).get(MapViewModel.class);
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        enableLocationUpdates(clientWantsLocationUpdates);
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        enableLocationUpdates(false);
     }
 
     @Override
@@ -216,13 +192,6 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
         addAttributionAndMapEventsOverlays();
         loadReferenceOverlay();
         addMapLayoutChangeListener(map);
-        osmLocationClientWrapper = new OsmLocationClientWrapper(locationClient);
-        myLocationOverlay = new MyLocationNewOverlay(osmLocationClientWrapper, map);
-        myLocationOverlay.setDrawAccuracyEnabled(true);
-        Drawable drawable = ContextCompat.getDrawable(requireActivity(), org.odk.collect.maps.R.drawable.ic_crosshairs);
-        Bitmap crosshairs = toBitmap(drawable, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), null);
-        myLocationOverlay.setDirectionArrow(crosshairs, crosshairs);
-        myLocationOverlay.setPersonHotspot(crosshairs.getWidth() / 2.0f, crosshairs.getHeight() / 2.0f);
 
         new Handler().postDelayed(() -> {
             // If the screen is rotated before the map is ready, this fragment
@@ -297,20 +266,15 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
     }
 
     @Override
-    public int addMarker(MarkerDescription markerDescription) {
-        int featureId = nextFeatureId++;
-        features.put(featureId, new MarkerFeature(map, markerDescription));
-        return featureId;
-    }
-
-    @Override
     public List<Integer> addMarkers(List<MarkerDescription> markers) {
         List<Integer> featureIds = new ArrayList<>();
         for (MarkerDescription markerDescription : markers) {
-            int featureId = addMarker(markerDescription);
+            int featureId = nextFeatureId++;
+            features.put(featureId, new MarkerFeature(map, markerDescription));
             featureIds.add(featureId);
         }
 
+        map.invalidate();
         return featureIds;
     }
 
@@ -333,32 +297,48 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
     @Override
     public int addPolyLine(LineDescription lineDescription) {
         int featureId = nextFeatureId++;
+        addPolyLine(featureId, lineDescription);
+        return featureId;
+    }
+
+    private void addPolyLine(int featureId, LineDescription lineDescription) {
         if (lineDescription.getDraggable()) {
             features.put(featureId, new DynamicPolyLineFeature(map, lineDescription));
         } else {
             features.put(featureId, new StaticPolyLineFeature(map, lineDescription));
         }
-        return featureId;
+    }
+
+    @Override
+    public void updatePolyLine(int featureId, @NotNull LineDescription lineDescription) {
+        features.get(featureId).dispose();
+        addPolyLine(featureId, lineDescription);
     }
 
     @Override
     public int addPolygon(PolygonDescription polygonDescription) {
         int featureId = nextFeatureId++;
-        features.put(featureId, new StaticPolygonFeature(map, polygonDescription));
+        addPolygon(featureId, polygonDescription);
         return featureId;
     }
 
-    @Override
-    public void appendPointToPolyLine(int featureId, @NonNull MapPoint point) {
-        MapFeature feature = features.get(featureId);
-        if (feature instanceof DynamicPolyLineFeature) {
-            ((DynamicPolyLineFeature) feature).addPoint(point);
+    private void addPolygon(int featureId, PolygonDescription polygonDescription) {
+        if (polygonDescription.getDraggable()) {
+            features.put(featureId, new DynamicPolygonFeature(map, polygonDescription));
+        } else {
+            features.put(featureId, new StaticPolygonFeature(map, polygonDescription));
         }
     }
 
     @Override
+    public void updatePolygon(int featureId, @NotNull PolygonDescription polygonDescription) {
+        features.get(featureId).dispose();
+        addPolygon(featureId, polygonDescription);
+    }
+
+    @Override
     public @NonNull
-    List<MapPoint> getPolyLinePoints(int featureId) {
+    List<MapPoint> getPolyPoints(int featureId) {
         MapFeature feature = features.get(featureId);
         if (feature instanceof LineFeature) {
             return ((LineFeature) feature).getPoints();
@@ -367,21 +347,27 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
     }
 
     @Override
-    public void removePolyLineLastPoint(int featureId) {
-        MapFeature feature = features.get(featureId);
-        if (feature instanceof DynamicPolyLineFeature) {
-            ((DynamicPolyLineFeature) feature).removeLastPoint();
-        }
-    }
-
-    @Override
     public void clearFeatures() {
         for (MapFeature feature : features.values()) {
             feature.dispose();
         }
-        map.invalidate();
         features.clear();
+
+        if (map != null) {
+            map.invalidate();
+        }
+
         nextFeatureId = 1;
+    }
+    @Override
+    public void clearFeatures(@NotNull List<@NotNull Integer> ids) {
+        for (Integer id : ids) {
+            features.remove(id).dispose();
+        }
+
+        if (map != null) {
+            map.invalidate();
+        }
     }
 
     @Override
@@ -404,110 +390,7 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
         dragEndListener = listener;
     }
 
-    @Override
-    public void setGpsLocationListener(@Nullable PointListener listener) {
-        gpsLocationListener = listener;
-    }
 
-    @Override
-    public void setRetainMockAccuracy(boolean retainMockAccuracy) {
-        locationClient.setRetainMockAccuracy(retainMockAccuracy);
-    }
-
-    @Override
-    public void runOnGpsLocationReady(@NonNull ReadyListener listener) {
-        myLocationOverlay.runOnFirstFix(() -> getActivity().runOnUiThread(() -> listener.onReady(this)));
-    }
-
-    @Override
-    public void setGpsLocationEnabled(boolean enable) {
-        if (enable != clientWantsLocationUpdates) {
-            clientWantsLocationUpdates = enable;
-            enableLocationUpdates(clientWantsLocationUpdates);
-        }
-    }
-
-    @Override
-    public @Nullable
-    MapPoint getGpsLocation() {
-        return fromLocation(myLocationOverlay);
-    }
-
-    @Override
-    public @Nullable
-    String getLocationProvider() {
-        Location fix = myLocationOverlay.getLastFix();
-        return fix != null ? fix.getProvider() : null;
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        Timber.i("onLocationChanged: location = %s", location);
-        if (gpsLocationListener != null) {
-            MapPoint point = fromLocation(myLocationOverlay);
-            if (point != null) {
-                gpsLocationListener.onPoint(point);
-            }
-        }
-
-        if (myLocationOverlay != null) {
-            myLocationOverlay.onLocationChanged(location, osmLocationClientWrapper);
-        }
-    }
-
-    @Override
-    public void onClientStart() {
-        map.getOverlays().add(myLocationOverlay);
-        myLocationOverlay.setEnabled(true);
-        myLocationOverlay.enableMyLocation();
-
-        Timber.i("Requesting location updates (to %s)", this);
-        locationClient.requestLocationUpdates(this);
-    }
-
-    @Override
-    public void onClientStartFailure() {
-    }
-
-    @Override
-    public void onClientStop() {
-    }
-
-    private void enableLocationUpdates(boolean enable) {
-        if (enable) {
-            Timber.i("Starting LocationClient %s (for MapFragment %s)", locationClient, this);
-            locationClient.start(this);
-        } else {
-            Timber.i("Stopping LocationClient %s (for MapFragment %s)", locationClient, this);
-            locationClient.stop();
-            myLocationOverlay.setEnabled(false);
-            safelyDisableOverlayLocationFollowing();
-        }
-    }
-
-    /**
-     * <a href="https://github.com/osmdroid/osmdroid/issues/1783">
-     * https://github.com/osmdroid/osmdroid/issues/1783
-     * </a>
-     **/
-    private void safelyDisableOverlayLocationFollowing() {
-        if (map.isAttachedToWindow()) {
-            myLocationOverlay.disableFollowLocation();
-            myLocationOverlay.disableMyLocation();
-        }
-    }
-
-    private static @Nullable
-    MapPoint fromLocation(@NonNull MyLocationNewOverlay overlay) {
-        GeoPoint geoPoint = overlay.getMyLocation();
-        if (geoPoint == null) {
-            return null;
-        }
-        return new MapPoint(
-                geoPoint.getLatitude(), geoPoint.getLongitude(),
-                geoPoint.getAltitude(), overlay.getLastFix().getAccuracy()
-        );
-    }
 
     private static @NonNull
     MapPoint fromGeoPoint(@NonNull IGeoPoint geoPoint) {
@@ -591,7 +474,8 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
         marker.setPosition(toGeoPoint(markerDescription.getPoint()));
         marker.setSubDescription(Double.toString(markerDescription.getPoint().accuracy));
         marker.setDraggable(markerDescription.isDraggable());
-        marker.setIcon(MarkerIconCreator.getMarkerIconDrawable(map.getContext(), markerDescription.getIconDescription()));
+        Bitmap iconBitmap = toBitmap(markerDescription.getIconDescription(), requireContext());
+        marker.setIcon(toDrawable(iconBitmap, requireContext().getResources()));
         marker.setAnchor(getIconAnchorValueX(markerDescription.getIconAnchor()), getIconAnchorValueY(markerDescription.getIconAnchor()));
         marker.setOnMarkerClickListener((clickedMarker, mapView) -> {
             int featureId = findFeature(clickedMarker);
@@ -629,7 +513,7 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
         return marker;
     }
 
-    private float getIconAnchorValueX(@MapFragment.Companion.IconAnchor String iconAnchor) {
+    private float getIconAnchorValueX(MapFragment.IconAnchor iconAnchor) {
         switch (iconAnchor) {
             case BOTTOM:
             default:
@@ -637,7 +521,7 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
         }
     }
 
-    private float getIconAnchorValueY(@MapFragment.Companion.IconAnchor String iconAnchor) {
+    private float getIconAnchorValueY(MapFragment.IconAnchor iconAnchor) {
         switch (iconAnchor) {
             case BOTTOM:
                 return Marker.ANCHOR_BOTTOM;
@@ -721,6 +605,23 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
         return mapViewModel;
     }
 
+    @Override
+    public void updateMarker(int featureId, @NotNull MarkerDescription markerDescription) {
+        features.get(featureId).dispose();
+        features.put(featureId, new MarkerFeature(map, markerDescription));
+        map.invalidate();
+    }
+
+    @Override
+    public int addCircle(@NotNull CircleDescription circleDescription) {
+        return -1;
+    }
+
+    @Override
+    public void updateCircle(int featureId, @NotNull CircleDescription circleDescription) {
+
+    }
+
     /**
      * A MapFeature is a physical feature on a map, such as a point, a road,
      * a building, a region, etc.  It is presented to the user as one editable
@@ -764,7 +665,11 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
         }
 
         public void setIcon(MarkerIconDescription markerIconDescription) {
-            marker.setIcon(MarkerIconCreator.getMarkerIconDrawable(map.getContext(), markerIconDescription));
+            Context context = requireContext();
+            Bitmap bitmap = toBitmap(markerIconDescription, context);
+            Drawable drawable = toDrawable(bitmap, context.getResources());
+
+            marker.setIcon(drawable);
         }
 
         public MapPoint getPoint() {
@@ -798,18 +703,13 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
         List<MapPoint> getPoints();
     }
 
-    /**
-     * A polyline or polygon that can be manipulated by dragging markers at its vertices.
-     */
     private class StaticPolyLineFeature implements LineFeature {
         final MapView map;
         final Polyline polyline;
-        final boolean closedPolygon;
         private final List<MapPoint> points;
 
         StaticPolyLineFeature(MapView map, LineDescription lineDescription) {
             this.map = map;
-            this.closedPolygon = lineDescription.getClosed();
             polyline = new Polyline();
             polyline.setColor(lineDescription.getStrokeColor());
             polyline.setOnClickListener((clickedPolyline, mapView, eventPos) -> {
@@ -826,9 +726,6 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
 
             points = lineDescription.getPoints();
             List<GeoPoint> geoPoints = StreamSupport.stream(points.spliterator(), false).map(mapPoint -> new GeoPoint(mapPoint.latitude, mapPoint.longitude, mapPoint.altitude)).collect(Collectors.toList());
-            if (closedPolygon && !geoPoints.isEmpty()) {
-                geoPoints.add(geoPoints.get(0));
-            }
             polyline.setPoints(geoPoints);
             map.invalidate();
         }
@@ -863,18 +760,13 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
         }
     }
 
-    /**
-     * A polyline or polygon that can be manipulated by dragging markers at its vertices.
-     */
     private class DynamicPolyLineFeature implements LineFeature {
         final MapView map;
         final List<Marker> markers = new ArrayList<>();
         final Polyline polyline;
-        final boolean closedPolygon;
 
         DynamicPolyLineFeature(MapView map, LineDescription lineDescription) {
             this.map = map;
-            this.closedPolygon = lineDescription.getClosed();
             polyline = new Polyline();
             polyline.setColor(lineDescription.getStrokeColor());
             polyline.setOnClickListener((clickedPolyline, mapView, eventPos) -> {
@@ -888,8 +780,10 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
             Paint paint = polyline.getPaint();
             paint.setStrokeWidth(lineDescription.getStrokeWidth());
             map.getOverlays().add(polyline);
-            for (MapPoint point : lineDescription.getPoints()) {
-                markers.add(createMarker(map, new MarkerDescription(point, true, CENTER, new MarkerIconDescription(org.odk.collect.icons.R.drawable.ic_map_point))));
+
+            List<MarkerDescription> markerDescriptions = getMarkersForPoints(lineDescription);
+            for (MarkerDescription markerDescription : markerDescriptions) {
+                markers.add(createMarker(map, markerDescription));
             }
             update();
         }
@@ -915,9 +809,7 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
             for (Marker marker : markers) {
                 geoPoints.add(marker.getPosition());
             }
-            if (closedPolygon && !geoPoints.isEmpty()) {
-                geoPoints.add(geoPoints.get(0));
-            }
+
             polyline.setPoints(geoPoints);
             map.invalidate();
         }
@@ -939,28 +831,92 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
             }
             return points;
         }
+    }
 
-        public void addPoint(MapPoint point) {
-            markers.add(createMarker(map, new MarkerDescription(point, true, CENTER, new MarkerIconDescription(org.odk.collect.icons.R.drawable.ic_map_point))));
+    private class DynamicPolygonFeature implements LineFeature {
+
+        final MapView map;
+        final List<Marker> markers = new ArrayList<>();
+        final Polygon polygon;
+
+        DynamicPolygonFeature(MapView map, PolygonDescription polygonDescription) {
+            this.map = map;
+            polygon = new Polygon();
+            polygon.setStrokeColor(polygonDescription.getStrokeColor());
+            polygon.setStrokeWidth(polygonDescription.getStrokeWidth());
+            polygon.getFillPaint().setColor(polygonDescription.getFillColor());
+            polygon.setOnClickListener((clickedPolygon, mapView, eventPos) -> {
+                int featureId = findFeature(clickedPolygon);
+                if (featureClickListener != null && featureId != -1) {
+                    featureClickListener.onFeature(featureId);
+                    return true;  // consume the event
+                }
+                return false;
+            });
+
+            map.getOverlays().add(polygon);
+
+            List<MarkerDescription> markerDescriptions = getMarkersForPoints(polygonDescription);
+            for (MarkerDescription markerDescription : markerDescriptions) {
+                markers.add(createMarker(map, markerDescription));
+            }
             update();
         }
 
-        public void removeLastPoint() {
-            if (!markers.isEmpty()) {
-                int last = markers.size() - 1;
-                map.getOverlays().remove(markers.get(last));
-                markers.remove(last);
-                update();
+        @Override
+        public boolean ownsMarker(Marker givenMarker) {
+            return markers.contains(givenMarker);
+        }
+
+        @Override
+        public boolean ownsPolyline(Polyline other) {
+            return false;
+        }
+
+        @Override
+        public boolean ownsPolygon(Polygon other) {
+            return polygon.equals(other);
+        }
+
+        @Override
+        public void update() {
+            List<GeoPoint> geoPoints = new ArrayList<>();
+            for (Marker marker : markers) {
+                geoPoints.add(marker.getPosition());
             }
+
+            polygon.setPoints(geoPoints);
+            map.invalidate();
+        }
+
+        @Override
+        public void dispose() {
+            for (Marker marker : markers) {
+                map.getOverlays().remove(marker);
+            }
+            markers.clear();
+            map.getOverlays().remove(polygon);
+        }
+
+        @Override
+        public List<MapPoint> getPoints() {
+            List<MapPoint> points = new ArrayList<>();
+            for (Marker marker : markers) {
+                points.add(fromMarker(marker));
+            }
+            return points;
         }
     }
 
-    private class StaticPolygonFeature implements MapFeature {
+    private class StaticPolygonFeature implements LineFeature {
         private final MapView map;
+        @NonNull
+        private final PolygonDescription polygonDescription;
         private final Polygon polygon = new Polygon();
 
         StaticPolygonFeature(MapView map, PolygonDescription polygonDescription) {
             this.map = map;
+            this.polygonDescription = polygonDescription;
 
             map.getOverlays().add(polygon);
             polygon.getOutlinePaint().setColor(polygonDescription.getStrokeColor());
@@ -1001,6 +957,11 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
         public void dispose() {
             map.getOverlays().remove(polygon);
         }
+
+        @Override
+        public List<MapPoint> getPoints() {
+            return polygonDescription.getPoints();
+        }
     }
 
     /**
@@ -1017,7 +978,7 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
 
             paint = new Paint();
             paint.setAntiAlias(true);
-            paint.setColor(ContextUtils.getThemeAttributeValue(context, com.google.android.material.R.attr.colorOnSurface));
+            paint.setColor(ContextExt.getThemeAttributeValue(context, com.google.android.material.R.attr.colorOnSurface));
             paint.setTextSize(FONT_SIZE_DP *
                     context.getResources().getDisplayMetrics().density);
             paint.setTextAlign(Paint.Align.RIGHT);
@@ -1040,39 +1001,6 @@ public class OsmDroidMapFragment extends MapViewModelMapFragment implements
                 }
                 canvas.restore();
             }
-        }
-    }
-
-    private static class OsmLocationClientWrapper implements IMyLocationProvider {
-        private LocationClient locationClient;
-
-        OsmLocationClientWrapper(LocationClient locationClient) {
-            this.locationClient = locationClient;
-        }
-
-        @Override
-        public boolean startLocationProvider(IMyLocationConsumer myLocationConsumer) {
-            // locationClient.start launches async work and we need to be confident that
-            // getLastKnownLocation is never called before onClientStart so we don't let the OSM
-            // location overlay start the provider. We also ignore the location consumer passed in
-            // and instead explicitly forward location updates to the overlay from onLocationChanged
-            return true;
-        }
-
-        @Override
-        public void stopLocationProvider() {
-            locationClient.stop();
-        }
-
-        @Override
-        public Location getLastKnownLocation() {
-            return locationClient.getLastLocation();
-        }
-
-        @Override
-        public void destroy() {
-            locationClient.stop();
-            locationClient = null;
         }
     }
 

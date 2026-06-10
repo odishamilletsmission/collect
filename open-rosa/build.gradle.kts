@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlinAndroid)
 }
 
 apply(from = "../config/quality.gradle")
@@ -14,7 +13,6 @@ android {
         minSdk = libs.versions.minSdk.get().toInt()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildTypes {
@@ -42,9 +40,10 @@ android {
 }
 
 dependencies {
-    implementation(project(":entities"))
     coreLibraryDesugaring(libs.desugar)
 
+    implementation(project(":androidshared"))
+    implementation(project(":entities"))
     implementation(project(":shared"))
     implementation(project(":forms"))
 

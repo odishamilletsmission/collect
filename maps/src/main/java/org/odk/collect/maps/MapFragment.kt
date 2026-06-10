@@ -1,8 +1,10 @@
 package org.odk.collect.maps
 
-import androidx.annotation.StringDef
+import org.odk.collect.maps.circles.CircleDescription
 import org.odk.collect.maps.markers.MarkerDescription
 import org.odk.collect.maps.markers.MarkerIconDescription
+import org.odk.collect.maps.traces.LineDescription
+import org.odk.collect.maps.traces.PolygonDescription
 
 /**
  * Interface for a Fragment that renders a map view.  The plan is to have one
@@ -77,11 +79,11 @@ interface MapFragment {
      * the user will be able to drag the marker to change its location.
      * Returns a positive integer, the featureId for the newly added shape.
      */
-    fun addMarker(markerDescription: MarkerDescription): Int
-
     fun addMarkers(markers: List<MarkerDescription>): List<Int>
+    fun updateMarker(featureId: Int, markerDescription: MarkerDescription)
 
     /** Sets the icon for a marker.  */
+    @Deprecated(message = "Use #updateMarker instead")
     fun setMarkerIcon(featureId: Int, markerIconDescription: MarkerIconDescription)
 
     /** Gets the location of an existing marker.  */
@@ -93,30 +95,27 @@ interface MapFragment {
      * Returns a positive integer, the featureId for the newly added shape.
      */
     fun addPolyLine(lineDescription: LineDescription): Int
+    fun updatePolyLine(featureId: Int, lineDescription: LineDescription)
 
     /**
      * Adds a polygon to the map with given sequence of vertices. * Returns a positive integer,
      * the featureId for the newly added shape.
      */
     fun addPolygon(polygonDescription: PolygonDescription): Int
+    fun updatePolygon(featureId: Int, polygonDescription: PolygonDescription)
 
-    /** Appends a vertex to the polyline or polygon specified by featureId.  */
-    fun appendPointToPolyLine(featureId: Int, point: MapPoint)
-
-    /**
-     * Removes the last vertex of the polyline or polygon specified by featureId.
-     * If there are no vertices, does nothing.
-     */
-    fun removePolyLineLastPoint(featureId: Int)
+    fun addCircle(circleDescription: CircleDescription): Int
+    fun updateCircle(featureId: Int, circleDescription: CircleDescription)
 
     /**
      * Returns the vertices of the polyline or polygon specified by featureId, or an
      * empty list if the featureId does not identify an existing polyline or polygon.
      */
-    fun getPolyLinePoints(featureId: Int): List<MapPoint>
+    fun getPolyPoints(featureId: Int): List<MapPoint>
 
     /** Removes all map features from the map.  */
     fun clearFeatures()
+    fun clearFeatures(ids: List<Int>)
 
     /** Sets or clears the callback for a click on the map.  */
     fun setClickListener(listener: PointListener?)
@@ -129,38 +128,6 @@ interface MapFragment {
 
     /** Sets or clears the callback for when a drag is completed.  */
     fun setDragEndListener(listener: FeatureListener?)
-
-    /**
-     * Enables/disables GPS tracking.  While enabled, the GPS location is shown
-     * on the map, the first GPS fix will trigger any pending callbacks set by
-     * runOnGpsLocationReady(), and every GPS fix will invoke the callback set
-     * by setGpsLocationListener().
-     */
-    fun setGpsLocationEnabled(enabled: Boolean)
-
-    /** Gets the last GPS location fix, or null if there hasn't been one.  */
-    fun getGpsLocation(): MapPoint?
-
-    /** Gets the provider of the last fix, or null if there hasn't been one.  */
-    fun getLocationProvider(): String?
-
-    /**
-     * Queues a callback to be invoked on the UI thread as soon as a GPS fix is
-     * available.  If there already is a location fix, the callback is invoked
-     * immediately; otherwise, when a fix is obtained, it will be invoked once.
-     * To begin searching for a GPS fix, call setGpsLocationEnabled(true).
-     * Activities that set callbacks should call setGpsLocationEnabled(false)
-     * in their onStop() or onDestroy() methods, to prevent invalid callbacks.
-     */
-    fun runOnGpsLocationReady(listener: ReadyListener)
-
-    /**
-     * Sets or clears the callback for GPS location updates.  This callback
-     * will only be invoked while GPS is enabled with setGpsLocationEnabled().
-     */
-    fun setGpsLocationListener(listener: PointListener?)
-
-    fun setRetainMockAccuracy(retainMockAccuracy: Boolean)
 
     /**
      * @return true if the [MapFragment] center has already been set (by [MapFragment.zoomToPoint] for instance).
@@ -189,12 +156,11 @@ interface MapFragment {
         const val POINT_ZOOM: Float = 16f
 
         const val KEY_REFERENCE_LAYER: String = "REFERENCE_LAYER"
-
-        @Retention(AnnotationRetention.SOURCE)
-        @StringDef(BOTTOM, CENTER)
-        annotation class IconAnchor
-
-        const val CENTER: String = "center"
-        const val BOTTOM: String = "bottom"
     }
+
+    enum class IconAnchor { CENTER, BOTTOM }
+}
+
+fun MapFragment.addMarker(marker: MarkerDescription): Int {
+    return addMarkers(listOf(marker))[0]
 }
