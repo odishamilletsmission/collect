@@ -74,6 +74,11 @@ import org.odk.collect.android.utilities.FormsRepositoryProvider
 import org.odk.collect.android.utilities.InstancesRepositoryProvider
 import org.odk.collect.android.utilities.SavepointsRepositoryProvider
 import org.odk.collect.android.utilities.ThemeUtils
+import org.odk.collect.android.wassan.activity.LoginActivity
+import org.odk.collect.android.wassan.activity.MainActivity
+import org.odk.collect.android.wassan.activity.SplashActivity
+import org.odk.collect.android.wassan.fragments.CalculatorFragment
+import org.odk.collect.android.wassan.fragments.DashboardFragment
 import org.odk.collect.android.widgets.QuestionWidget
 import org.odk.collect.android.widgets.items.SelectOneFromMapDialogFragment
 import org.odk.collect.async.Scheduler
@@ -249,17 +254,11 @@ interface AppDependencyComponent {
     fun inject(formHierarchyFragmentHostActivity: FormHierarchyFragmentHostActivity)
 
     //Niranjan Added
-    fun inject(SplashActivity: splashActivity);
-
-    fun inject(MainActivity: mainActivity);
-
-    fun inject(LoginActivity: loginActivity);
-
-    fun inject(DashboardFragment: dashboardFragment);
-
-    fun inject(CalculatorFragment: formFragment);
-
-    fun inject(CustomInstanceChooserList: customInstanceChooserList);
+    fun inject(splashActivity: SplashActivity)
+    fun inject(mainActivity: MainActivity)
+    fun inject(loginActivity: LoginActivity)
+    fun inject(dashboardFragment: DashboardFragment)
+    fun inject(formFragment: CalculatorFragment)
 
     fun referenceManager(): ReferenceManager
 

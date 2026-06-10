@@ -14,7 +14,6 @@ import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.odk.collect.android.R
-import org.odk.collect.android.activities.AppListActivity
 import org.odk.collect.android.activities.FormMapActivity
 import org.odk.collect.android.activities.InstanceChooserList
 import org.odk.collect.android.formentry.FormOpeningMode
@@ -24,29 +23,22 @@ import org.odk.collect.android.injection.DaggerUtils
 import org.odk.collect.android.instancemanagement.send.InstanceUploaderListActivity
 import org.odk.collect.android.preferences.dialogs.ServerAuthDialogFragment
 import org.odk.collect.android.projects.ProjectsDataService
-import org.odk.collect.android.utilities.ApplicationConstants
 import org.odk.collect.android.utilities.FormsRepositoryProvider
 import org.odk.collect.android.utilities.InstancesRepositoryProvider
-import org.odk.collect.android.wassan.app.CustomInstanceChooserList
+import org.odk.collect.android.wassan.app.FilterHelper
 import org.odk.collect.android.wassan.listeners.FormActionListener
 import org.odk.collect.android.wassan.model.DasboardFormListAdapter
 import org.odk.collect.androidshared.ui.DialogFragmentUtils
 import org.odk.collect.androidshared.ui.ObviousProgressBar
 import org.odk.collect.androidshared.ui.SnackbarUtils
-import org.odk.collect.forms.instances.Instance
+import org.odk.collect.androidshared.ui.SnackbarUtils.DURATION_SHORT
 import org.odk.collect.lists.EmptyListView
 import org.odk.collect.lists.RecyclerViewUtils
 import org.odk.collect.permissions.PermissionListener
 import org.odk.collect.permissions.PermissionsProvider
 import javax.inject.Inject
 
-
-/**
- * A simple [Fragment] subclass.
- * Use the [CommunityFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
-class DashboardFragment : Fragment(), OnFormItemClickListener,FormActionListener  {
+class DashboardFragment : Fragment(), OnFormItemClickListener, FormActionListener {
 
     @Inject
     lateinit var viewModelFactory: BlankFormListViewModel.Factory
@@ -64,70 +56,52 @@ class DashboardFragment : Fragment(), OnFormItemClickListener,FormActionListener
     lateinit var projectsDataService: ProjectsDataService
 
     private val viewModel: BlankFormListViewModel by viewModels { viewModelFactory }
-    //private val adapter: DasboardFormListAdapter = DasboardFormListAdapter(this)
     private lateinit var adapter: DasboardFormListAdapter
-
-    private lateinit var recyclerView: RecyclerView
-
     private var formSelectedListener: OnFormSelectedListener? = null
 
-    private val formLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == AppCompatActivity.RESULT_OK) {
-            val data = result.data
+    private val formLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == AppCompatActivity.RESULT_OK) {
+                // Optionally handle returned data if needed
+            }
         }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Dependency Injection (similar to Activity)
         DaggerUtils.getComponent(requireContext()).inject(this)
-        adapter = DasboardFormListAdapter(this,this, instancesRepositoryProvider, projectsDataService)
-        // Initialize your ViewModel, network state provider, or any other setup here
-        //viewModel = ViewModelProvider(this).get(BlankFormListViewModel::class.java)
-        //networkStateProvider = NetworkStateProvider(requireContext())
+        adapter = DasboardFormListAdapter(this, this, instancesRepositoryProvider, projectsDataService)
     }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
         formSelectedListener = context as? OnFormSelectedListener
-        if (formSelectedListener == null) {
-            throw ClassCastException("$context must implement OnFormSelectedListener")
-        }
+            ?: throw ClassCastException("$context must implement OnFormSelectedListener")
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_dashboard, container, false)
-    }
+    ): View? = inflater.inflate(R.layout.fragment_dashboard, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         initView(view)
+
     }
 
     private fun initView(view: View) {
-       // view.findViewById<RecyclerView>(R.id.dashboard_form_list).adapter = adapter
-
         val list = view.findViewById<RecyclerView>(R.id.dashboard_form_list)
         list.layoutManager = LinearLayoutManager(requireContext())
         list.addItemDecoration(RecyclerViewUtils.verticalLineDivider(requireContext()))
         list.adapter = adapter
 
         viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
-            // Access the progress bar and show/hide based on isLoading state
-            view.findViewById<ObviousProgressBar>(org.odk.collect.androidshared.R.id.progressBar)?.apply {
-                if (isLoading) show() else hide()
-            }
+            view.findViewById<ObviousProgressBar>(org.odk.collect.androidshared.R.id.progressBar)
+                ?.apply { if (isLoading) show() else hide() }
         }
 
         viewModel.syncResult.observe(viewLifecycleOwner) { result ->
-            if (result != null) {
-                SnackbarUtils.showShortSnackbar(requireView(), result)
-            }
+            result?.let { SnackbarUtils.showSnackbar(requireView(), it, DURATION_SHORT) }
         }
 
         viewModel.formsToDisplay.observe(viewLifecycleOwner) { forms ->
@@ -140,8 +114,8 @@ class DashboardFragment : Fragment(), OnFormItemClickListener,FormActionListener
             adapter.setData(forms)
         }
 
-        viewModel.isAuthenticationRequired().observe(viewLifecycleOwner) { authenticationRequired ->
-            if (authenticationRequired) {
+        viewModel.isAuthenticationRequired().observe(viewLifecycleOwner) { required ->
+            if (required) {
                 DialogFragmentUtils.showIfNotShowing(
                     ServerAuthDialogFragment::class.java,
                     childFragmentManager
@@ -155,86 +129,56 @@ class DashboardFragment : Fragment(), OnFormItemClickListener,FormActionListener
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        view?.let {
+            // force RecyclerView to refresh
+            adapter.notifyDataSetChanged()
+
+        }
+
+    }
 
     override fun onFormClick(formUri: Uri) {
         formSelectedListener?.onFormSelected(formUri)
     }
 
     override fun onMapButtonClick(id: Long) {
-        permissionsProvider.requestEnabledLocationPermissions(
-            requireActivity(),
-            object : PermissionListener {
-                override fun granted() {
-                    startActivity(
-                        Intent(requireContext(), FormMapActivity::class.java).also {
-                            it.putExtra(FormMapActivity.EXTRA_FORM_ID, id)
-                        }
-                    )
-                }
+        permissionsProvider.requestEnabledLocationPermissions(requireActivity(), object : PermissionListener {
+            override fun granted() {
+                startActivity(Intent(requireContext(), FormMapActivity::class.java).apply {
+                    putExtra(FormMapActivity.EXTRA_FORM_ID, id)
+                })
             }
-        )
+        })
     }
 
-    /*override fun onDraftClick(formId: String) {
-        lifecycleScope.launch {
-            val hasInstances = withContext(Dispatchers.IO) {
-                instancesRepositoryProvider.create().all.any { it.formId == formId }
-            }
-
-            if (hasInstances) {
-                val intent = Intent(requireActivity(), InstanceChooserList::class.java).apply {
-                    putExtra(ApplicationConstants.BundleKeys.FORM_MODE, ApplicationConstants.FormModes.EDIT_SAVED)
-                    putExtra("FILTER_ID", formId) // Pass the filter ID
-                }
-                formLauncher.launch(intent)
-            } else {
-                Toast.makeText(requireContext(), "No matching drafts found!", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }*/
-
-
-
-
     override fun onDraftClick(formId: String) {
-
+        FilterHelper.getInstance().setFilterId(formId)
         formLauncher.launch(
-            Intent(requireActivity(), CustomInstanceChooserList::class.java).apply {
-                putExtra(
-                    FormOpeningMode.FORM_MODE_KEY,
-                    FormOpeningMode.EDIT_SAVED
-                )
-                putExtra("FILTER_ID", formId)
+            Intent(requireActivity(), InstanceChooserList::class.java).apply {
+                putExtra(FormOpeningMode.FORM_MODE_KEY, FormOpeningMode.EDIT_SAVED)
             }
         )
-
     }
 
     override fun onReadyClick(formId: String) {
+        FilterHelper.getInstance().setFilterId(formId)
         formLauncher.launch(
             Intent(requireActivity(), InstanceUploaderListActivity::class.java).apply {
-                putExtra("FILTER_ID", formId) // Pass the filterId
+                putExtra("FILTER_ID", formId)
             }
         )
     }
 
     override fun onSentClick(formId: String) {
+        FilterHelper.getInstance().setFilterId(formId)
         startActivity(
             Intent(requireActivity(), InstanceChooserList::class.java).apply {
-                putExtra(
-                    FormOpeningMode.FORM_MODE_KEY,
-                    FormOpeningMode.VIEW_SENT
-                )
-                putExtra("FILTER_ID", formId)
+                putExtra(FormOpeningMode.FORM_MODE_KEY, FormOpeningMode.VIEW_SENT)
             }
         )
     }
-
-    private fun getFilteredInstances(formId: String): List<Instance> {
-        val instancesRepository = instancesRepositoryProvider.create() // Get repository instance
-        return instancesRepository.all.filter { it.formId == formId }
-    }
-
 }
 
 interface OnFormSelectedListener {

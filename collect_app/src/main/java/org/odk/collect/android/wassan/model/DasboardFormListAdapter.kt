@@ -1,8 +1,6 @@
 package org.odk.collect.android.wassan.model
 
 import android.annotation.SuppressLint
-import android.database.Cursor
-import android.database.DatabaseUtils
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -12,20 +10,14 @@ import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import org.odk.collect.android.R
 import org.odk.collect.android.database.instances.DatabaseInstanceColumns
-import org.odk.collect.android.database.instances.DatabaseInstancesRepository
 import org.odk.collect.android.formlists.blankformlist.BlankFormListItem
 import org.odk.collect.android.formlists.blankformlist.OnFormItemClickListener
 import org.odk.collect.android.projects.ProjectsDataService
-import org.odk.collect.android.utilities.FormsRepositoryProvider
 import org.odk.collect.android.utilities.InstancesRepositoryProvider
 import org.odk.collect.android.wassan.app.InstanceCountHelper
-import org.odk.collect.android.wassan.app.Utils
 import org.odk.collect.android.wassan.listeners.FormActionListener
 import org.odk.collect.androidshared.ui.multiclicksafe.MultiClickGuard
-import org.odk.collect.forms.FormsRepository
 import org.odk.collect.forms.instances.Instance
-import java.util.Locale
-
 
 class DasboardFormListAdapter(
     val listener: OnFormItemClickListener,
@@ -34,7 +26,6 @@ class DasboardFormListAdapter(
     private val projectsDataService: ProjectsDataService
 ) : RecyclerView.Adapter<DashboardFormListItemViewHolder>() {
 
-    lateinit var c: Cursor
     private var formItems = emptyList<BlankFormListItem>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DashboardFormListItemViewHolder {
@@ -44,65 +35,63 @@ class DasboardFormListAdapter(
     }
 
     override fun onBindViewHolder(holder: DashboardFormListItemViewHolder, position: Int) {
+        bindCounts(holder, position)
+    }
+
+    override fun onBindViewHolder(
+        holder: DashboardFormListItemViewHolder,
+        position: Int,
+        payloads: MutableList<Any>
+    ) {
+        if (payloads.isNotEmpty()) {
+            // Only update counts
+            bindCounts(holder, position)
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
+    private fun bindCounts(holder: DashboardFormListItemViewHolder, position: Int) {
         val item = formItems[position]
         holder.dashboardFormListItem = item
 
+        val draftCount = holder.itemView.findViewById<TextView>(R.id.draftCount)
+        val readyCount = holder.itemView.findViewById<TextView>(R.id.readyCount)
+        val sentCount = holder.itemView.findViewById<TextView>(R.id.sentCount)
+
+        val mapButton = holder.itemView.findViewById<Button>(R.id.map_button)
+        mapButton.visibility = if (item.geometryPath.isNotBlank()) View.VISIBLE else View.GONE
+
+        val currentProject = projectsDataService.requireCurrentProject()
+
+        // Update counts dynamically
+        draftCount.text = InstanceCountHelper.getInstanceCount(
+            instancesRepositoryProvider,
+            currentProject.uuid,
+            "${DatabaseInstanceColumns.JR_FORM_ID} = ? AND ${DatabaseInstanceColumns.STATUS} IN (?, ?, ?)",
+            arrayOf(item.formId, Instance.STATUS_INCOMPLETE, Instance.STATUS_INVALID, Instance.STATUS_VALID)
+        ).toString()
+
+        readyCount.text = InstanceCountHelper.getInstanceCount(
+            instancesRepositoryProvider,
+            currentProject.uuid,
+            "${DatabaseInstanceColumns.JR_FORM_ID} = ? AND ${DatabaseInstanceColumns.STATUS} IN (?, ?)",
+            arrayOf(item.formId, Instance.STATUS_COMPLETE, Instance.STATUS_SUBMISSION_FAILED)
+        ).toString()
+
+        sentCount.text = InstanceCountHelper.getInstanceCount(
+            instancesRepositoryProvider,
+            currentProject.uuid,
+            "${DatabaseInstanceColumns.JR_FORM_ID} = ? AND ${DatabaseInstanceColumns.STATUS} = ?",
+            arrayOf(item.formId, Instance.STATUS_SUBMITTED)
+        ).toString()
+
+        // Click listeners
         holder.itemView.setOnClickListener {
             if (MultiClickGuard.allowClick(javaClass.name)) {
                 listener.onFormClick(item.contentUri)
             }
         }
-
-        val cardView = holder.itemView.findViewById<CardView>(R.id.cardView)
-
-        val draftButton = holder.itemView.findViewById<LinearLayout>(R.id.btnDraft)
-        val draftCount = holder.itemView.findViewById<TextView>(R.id.draftCount)
-
-        val readyButton = holder.itemView.findViewById<LinearLayout>(R.id.btnReady)
-        val readyCount = holder.itemView.findViewById<TextView>(R.id.readyCount)
-
-        val sentButton = holder.itemView.findViewById<LinearLayout>(R.id.btnSent)
-        val sentCount = holder.itemView.findViewById<TextView>(R.id.sentCount)
-
-        val mapButton = holder.itemView.findViewById<Button>(R.id.map_button)
-
-        val formId = item.formId
-
-        mapButton.visibility = if (item.geometryPath.isNotBlank()) {
-            View.VISIBLE
-        } else {
-            View.GONE
-        }
-        val currentProject = projectsDataService.requireCurrentProject()
-
-        draftCount.text = getFormattedCount(
-            InstanceCountHelper.getInstanceCount(
-                instancesRepositoryProvider,
-                currentProject.uuid,
-                "${DatabaseInstanceColumns.JR_FORM_ID} = ? AND ${DatabaseInstanceColumns.STATUS} IN (?, ?, ?)",
-                arrayOf(formId, Instance.STATUS_INCOMPLETE, Instance.STATUS_INVALID, Instance.STATUS_VALID)
-            )
-        )
-
-        readyCount.text = getFormattedCount(
-            InstanceCountHelper.getInstanceCount(
-                instancesRepositoryProvider,
-                currentProject.uuid,
-                "${DatabaseInstanceColumns.JR_FORM_ID} = ? AND ${DatabaseInstanceColumns.STATUS} IN (?, ?)",
-                arrayOf(formId, Instance.STATUS_COMPLETE, Instance.STATUS_SUBMISSION_FAILED)
-            )
-        )
-
-        sentCount.text = getFormattedCount(
-            InstanceCountHelper.getInstanceCount(
-                instancesRepositoryProvider,
-                currentProject.uuid,
-                "${DatabaseInstanceColumns.JR_FORM_ID} = ? AND ${DatabaseInstanceColumns.STATUS} = ?",
-                arrayOf(formId, Instance.STATUS_SUBMITTED)
-            )
-        )
-
-        //cardView.background = Utils.getRandomGradientDrawable()
 
         mapButton.setOnClickListener {
             if (MultiClickGuard.allowClick(javaClass.name)) {
@@ -110,66 +99,45 @@ class DasboardFormListAdapter(
             }
         }
 
-        draftButton.setOnClickListener {
+        holder.itemView.findViewById<LinearLayout>(R.id.btnDraft).setOnClickListener {
             if (MultiClickGuard.allowClick(javaClass.name)) {
                 formActionListener.onDraftClick(item.formId)
             }
         }
 
-        readyButton.setOnClickListener {
+        holder.itemView.findViewById<LinearLayout>(R.id.btnReady).setOnClickListener {
             if (MultiClickGuard.allowClick(javaClass.name)) {
                 formActionListener.onReadyClick(item.formId)
             }
         }
 
-        sentButton.setOnClickListener {
+        holder.itemView.findViewById<LinearLayout>(R.id.btnSent).setOnClickListener {
             if (MultiClickGuard.allowClick(javaClass.name)) {
                 formActionListener.onSentClick(item.formId)
             }
         }
     }
 
-    private fun getFormattedCount(count: Int): String {
-        return String.format(Locale.getDefault(), "%d", count)
-    }
-
     override fun getItemCount() = formItems.size
 
+    /** Set full list of forms (initial load or refresh) */
     @SuppressLint("NotifyDataSetChanged")
     fun setData(blankFormItems: List<BlankFormListItem>) {
         this.formItems = blankFormItems.toList()
         notifyDataSetChanged()
     }
 
-
-
-    private fun dbQuery(
-        projectId: String,
-        selection: String,
-        selectionArgs: Array<String>
-    ): Int {
-        val instancesRepository = instancesRepositoryProvider.create(projectId)
-
-        if (instancesRepository is DatabaseInstancesRepository) {
-            val cursor = instancesRepository.rawQuery(
-                arrayOf("COUNT(*)"),  // Select only the count
-                selection,
-                selectionArgs,
-                null, // No sorting
-                null  // No grouping
-            )
-
-            cursor.use {
-                return if (cursor.moveToFirst()) cursor.getInt(0) else 0 // Extract the count
-            }
-        }
-
-        return 0
+    /** Refresh only counts for visible items */
+    fun refreshCounts() {
+        notifyItemRangeChanged(0, formItems.size)
     }
 
+    /** Return current adapter data */
+    fun getData(): List<BlankFormListItem> = formItems
+
+    /** Add new forms dynamically after download */
+    fun addData(newForms: List<BlankFormListItem>) {
+        formItems = formItems + newForms
+        notifyDataSetChanged()
+    }
 }
-
-
-
-
-

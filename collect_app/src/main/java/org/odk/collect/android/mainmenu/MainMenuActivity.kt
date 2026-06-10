@@ -1,5 +1,6 @@
 package org.odk.collect.android.mainmenu
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -12,6 +13,7 @@ import org.odk.collect.android.application.CollectComposeThemeProvider
 import org.odk.collect.android.injection.DaggerUtils
 import org.odk.collect.android.projects.ProjectSettingsDialog
 import org.odk.collect.android.utilities.ThemeUtils
+import org.odk.collect.android.wassan.activity.MainActivity
 import org.odk.collect.androidshared.ui.FragmentFactoryBuilder
 import org.odk.collect.crashhandler.CrashHandler
 import org.odk.collect.mobiledevicemanagement.MDMConfigObserver
@@ -47,11 +49,11 @@ class MainMenuActivity : LocalizedActivity(), CollectComposeThemeProvider {
         Don't reopen if the app is already open - allows entry points like notifications to use
         this Activity as a target to reopen the app without interrupting an ongoing session
          */
-        if (!isTaskRoot) {
+        /*if (!isTaskRoot) {
             super.onCreate(null)
             finish()
             return
-        }
+        }*/
 
         CrashHandler.getInstance(this)?.also {
             if (it.hasCrashed(this)) {
@@ -106,4 +108,5 @@ class MainMenuActivity : LocalizedActivity(), CollectComposeThemeProvider {
             setTheme(R.style.Theme_Collect)
         }
     }
+
 }

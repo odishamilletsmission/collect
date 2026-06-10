@@ -1,32 +1,33 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/nav_header_height"
-    android:background="@drawable/side_nav_bar"
-    android:fitsSystemWindows="true">
+    android:layout_height="160dp"
+    android:background="@drawable/nav_header_bg_gradient"
+    android:padding="16dp"
+    android:clipToPadding="false">
 
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="72dp"
         android:layout_height="72dp"
-        android:layout_marginStart="16dp"
         android:src="@drawable/logoc"
-        android:background="@drawable/circle_white"
+        android:background="@drawable/circle_shadow"
         android:scaleType="centerCrop"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:elevation="6dp"
         app:layout_constraintStart_toStartOf="parent"
-        android:elevation="4dp" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <LinearLayout
         android:id="@+id/userInfo"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginStart="12dp"
         app:layout_constraintStart_toEndOf="@id/imageView"
-        android:layout_marginStart="12dp">
+        app:layout_constraintTop_toTopOf="@id/imageView"
+        app:layout_constraintBottom_toBottomOf="@id/imageView"
+        app:layout_constraintEnd_toStartOf="@id/syncIcon">
 
         <TextView
             android:id="@+id/fullName"
@@ -35,7 +36,9 @@
             android:text="John Doe"
             android:textColor="@android:color/white"
             android:textSize="18sp"
-            android:textStyle="bold"/>
+            android:textStyle="bold"
+            android:ellipsize="end"
+            android:maxLines="1" />
 
         <TextView
             android:id="@+id/role"
@@ -43,6 +46,32 @@
             android:layout_height="wrap_content"
             android:text="Admin"
             android:textColor="@android:color/white"
-            android:textSize="14sp"/>
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/projectBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Project XYZ"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            android:background="@drawable/bg_badge"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:layout_marginTop="4dp" />
     </LinearLayout>
+
+    <ImageView
+        android:id="@+id/syncIcon"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:src="@drawable/outline_auto_mode_24"
+        android:contentDescription="sync"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="6dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

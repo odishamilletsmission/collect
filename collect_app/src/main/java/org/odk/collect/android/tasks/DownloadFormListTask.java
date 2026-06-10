@@ -33,16 +33,16 @@ import org.odk.collect.android.injection.DaggerUtils;
 import org.odk.collect.android.listeners.FormListDownloaderListener;
 import org.odk.collect.android.projects.ProjectsDataService;
 import org.odk.collect.android.utilities.WebCredentialsUtils;
-import org.odk.collect.android.wassan.app.UserProject;
 import org.odk.collect.android.wassan.model.User;
+import org.odk.collect.android.wassan.model.UserProject;
 import org.odk.collect.forms.FormSourceException;
 import org.odk.collect.settings.SettingsProvider;
 import org.odk.collect.settings.keys.MetaKeys;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 
 import javax.inject.Inject;
 
@@ -83,6 +83,7 @@ public class DownloadFormListTask extends AsyncTask<Void, String, Pair<List<Serv
 
     @Override
     protected Pair<List<ServerFormDetails>, FormSourceException> doInBackground(Void... values) {
+
         formsDataService.refresh(projectsDataService.requireCurrentProject().getUuid());
 
         if (webCredentialsUtils != null) {
@@ -112,39 +113,37 @@ public class DownloadFormListTask extends AsyncTask<Void, String, Pair<List<Serv
 
         String userJson = settingsProvider.getMetaSettings().getString(MetaKeys.KEY_USER);
         String currentProjectId = settingsProvider.getMetaSettings().getString(MetaKeys.CURRENT_PROJECT_ID);
+
         if (userJson == null || currentProjectId == null) return;
 
         Gson gson = new Gson();
-        JsonObject root = JsonParser.parseString(userJson).getAsJsonObject();
-        JsonArray projectsJson = root.getAsJsonArray("userProjects");
+        User user = gson.fromJson(userJson, User.class);
 
-        if (projectsJson == null || projectsJson.size() == 0) return;
+        if (user.getUserProjects() == null || user.getUserProjects().isEmpty()) return;
 
-        // Find the matching UserProject for the current project
-        JsonArray assignFormsArray = null;
-        for (JsonElement element : projectsJson) {
-            UserProject project = gson.fromJson(element, UserProject.class);
-            if (currentProjectId.equals(project.getCentral_project_id())) {
-                assignFormsArray = gson.toJsonTree(project.getAssign_forms()).getAsJsonArray();
+        UserProject currentProject = null;
+        for (UserProject project : user.getUserProjects()) {
+            if (currentProjectId.equals(project.getCentralProjectId())) {
+                currentProject = project;
                 break;
             }
         }
 
-        if (assignFormsArray == null || assignFormsArray.size() == 0) return;
+        if (currentProject == null || currentProject.getAssignForms().isEmpty()) return;
 
-        // Extract assign form IDs
-        List<String> assignFormIds = new ArrayList<>();
-        for (JsonElement element : assignFormsArray) {
-            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
-                assignFormIds.add(element.getAsString());
+        List<String> assignFormIds = currentProject.getAssignForms();
+
+        // Filter formList
+        Iterator<ServerFormDetails> iterator = formList.iterator();
+        while (iterator.hasNext()) {
+            ServerFormDetails form = iterator.next();
+            String formId = form.getFormId();
+            if (formId == null || !assignFormIds.contains(formId)) {
+                iterator.remove();
             }
         }
-
-        if (assignFormIds.isEmpty()) return;
-
-        // Filter formList based on assigned form IDs
-        formList.removeIf(form -> form.getFormId() == null || !assignFormIds.contains(form.getFormId()));
     }
+
 
 
     @Override

@@ -14,4 +14,5 @@
     <dimen name="nav_header_height">150dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
     <dimen name="mediumCornerSize">8dp</dimen>
+    <dimen name="drawer_curve_radius">60dp</dimen>
 </resources>
