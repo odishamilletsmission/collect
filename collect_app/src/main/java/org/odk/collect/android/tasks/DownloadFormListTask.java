@@ -83,6 +83,9 @@ public class DownloadFormListTask extends AsyncTask<Void, String, Pair<List<Serv
     @Inject
     ProjectDependencyModuleFactory projectDependencyModuleFactory;
 
+    @Inject
+    SettingsProvider settingsProvider;
+
     public DownloadFormListTask() {
         DaggerUtils.getComponent(Collect.getInstance()).inject(this);
 
@@ -105,7 +108,7 @@ public class DownloadFormListTask extends AsyncTask<Void, String, Pair<List<Serv
 
         try {
             formList = ServerFormUseCases.fetchFormDetails(formsRepository, formSource);
-             processAndFilterFormList(formList);
+            processAndFilterFormList(formList);
         } catch (FormSourceException e) {
             exception = e;
         } finally {

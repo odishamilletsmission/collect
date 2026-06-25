@@ -63,7 +63,7 @@ public class DatePickerDetails implements Serializable {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof DatePickerDetails datePickerDetails)) {
+        if (!(obj instanceof DatePickerDetails)) {
             return false;
         }
         DatePickerDetails datePickerDetails = (DatePickerDetails) obj;

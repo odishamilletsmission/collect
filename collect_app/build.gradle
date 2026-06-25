@@ -248,8 +248,8 @@ configurations.all {
 
 dependencies {
     implementation libs.androidMaterial
-    implementation libs.activity
-    implementation libs.constraintlayout
+    implementation libs.androidxActivity
+    implementation libs.androidxConstraintLayout
     coreLibraryDesugaring libs.desugar
 
     implementation project(':shared')

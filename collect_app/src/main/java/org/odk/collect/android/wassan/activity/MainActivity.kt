@@ -23,6 +23,7 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -31,6 +32,9 @@ import com.google.android.material.navigation.NavigationView
 import com.google.android.material.shape.CornerFamily
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.odk.collect.android.R
 import org.odk.collect.android.activities.ActivityUtils
 import org.odk.collect.android.activities.FormDownloadListActivity
@@ -61,6 +65,7 @@ import org.odk.collect.projects.Project
 import org.odk.collect.projects.ProjectsRepository
 import org.odk.collect.settings.SettingsProvider
 import org.odk.collect.settings.keys.MetaKeys
+import org.odk.collect.settings.keys.ProjectKeys
 import org.odk.collect.strings.localization.LocalizedActivity
 import timber.log.Timber
 import javax.inject.Inject
@@ -250,27 +255,41 @@ class MainActivity : LocalizedActivity(),CollectComposeThemeProvider,
             return
         }
 
-        // Clear existing projects
-        projectsRepository.deleteAll()
+        lifecycleScope.launch {
+            progressDialog.setMessage("Updating projects...")
+            withContext(Dispatchers.IO) {
+                // Clear existing projects
+                projectsRepository.deleteAll()
 
-        // Save all projects
-        projects.forEach { project ->
-            projectsRepository.save(
-                Project.Saved(
-                    project.centralProjectId,
-                    project.projectName,
-                    project.icon,
-                    project.color
-                )
-            )
+                // Save all projects
+                projects.forEach { project ->
+                    projectsRepository.save(
+                        Project.Saved(
+                            project.centralProjectId,
+                            project.projectName,
+                            project.icon,
+                            project.color
+                        )
+                    )
+
+                    val serverUrl = "${project.serverUrl}/key/${project.centralUserToken}/projects/${project.centralProjectId}"
+
+                    settingsProvider.getUnprotectedSettings(project.centralProjectId).apply {
+                        save(ProjectKeys.KEY_METADATA_USERNAME, user.username)
+                        save(ProjectKeys.KEY_USERNAME, user.username)
+                        save(ProjectKeys.KEY_METADATA_PHONENUMBER, user.phone)
+                        save(ProjectKeys.KEY_METADATA_EMAIL, user.email)
+                        save(ProjectKeys.KEY_SERVER_URL, serverUrl)
+                        save(ProjectKeys.KEY_PROTOCOL, ProjectKeys.PROTOCOL_SERVER)
+                    }
+                }
+
+                // Set default project as current if exists, else first project
+                val defaultProject = user.defaultProject ?: projects.first()
+                projectsDataService.setCurrentProject(defaultProject.centralProjectId)
+            }
+            Toast.makeText(applicationContext, "Projects synced successfully", Toast.LENGTH_SHORT).show()
         }
-
-        // Set default project as current if exists, else first project
-        val defaultProject = user.defaultProject ?: projects.first()
-        projectsDataService.setCurrentProject(defaultProject.centralProjectId)
-
-        // Relaunch or refresh dashboard
-        //launchDashboard()
     }
     private fun initBottomNavigation() {
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigation)

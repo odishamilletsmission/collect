@@ -2,7 +2,6 @@ package org.odk.collect.android.wassan.app
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.DownloadManager
 import android.content.*
 import android.net.Uri
 import android.os.Build
@@ -38,7 +37,7 @@ class AppUpdater(
             }
 
             override fun onResponse(call: Call, response: Response) {
-                response.body?.string()?.let { jsonStr ->
+                response.body()?.string()?.let { jsonStr ->
                     val json = JSONObject(jsonStr)
                     val latestVersion = json.getInt("versionCode")
                     val apkUrl = json.getString("apkUrl")
@@ -93,7 +92,7 @@ class AppUpdater(
 
                 val request = Request.Builder().url(apkUrl).build()
                 val response = client.newCall(request).execute()
-                val body = response.body ?: return@withContext
+                val body = response.body() ?: return@withContext
 
                 val total = body.contentLength()
                 var downloaded = 0L
@@ -126,11 +125,7 @@ class AppUpdater(
     }
 
     private fun installApk(file: File) {
-        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            FileProvider.getUriForFile(activity, "${activity.packageName}.provider", file)
-        } else {
-            Uri.fromFile(file)
-        }
+        val uri = FileProvider.getUriForFile(activity, "${activity.packageName}.provider", file)
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "application/vnd.android.package-archive")

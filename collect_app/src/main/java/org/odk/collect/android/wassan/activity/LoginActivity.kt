@@ -5,12 +5,16 @@ import android.os.Bundle
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.gson.Gson
 import com.google.gson.JsonParser
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.odk.collect.android.R
 import org.odk.collect.android.activities.ActivityUtils
 import org.odk.collect.android.injection.DaggerUtils
@@ -51,6 +55,10 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
         enableEdgeToEdge()
         DaggerUtils.getComponent(this).inject(this)
         setContentView(R.layout.activity_login)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            ApiClient.create(applicationContext)
+        }
 
         usernameEdit = findViewById(R.id.editTextUsername)
         passwordEdit = findViewById(R.id.editTextPassword)
@@ -152,49 +160,35 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
             val jsonUser = gson.toJson(user)
             settingsProvider.getMetaSettings().save(MetaKeys.KEY_USER, jsonUser)
 
-            //remove all project first
-            //projectsRepository.deleteAll()
-
             val defaultProject = user.defaultProject
 
             if (defaultProject == null || defaultProject.centralProjectId.isEmpty()) {
                 Toast.makeText(applicationContext, "No default project assigned to your account.", Toast.LENGTH_LONG).show()
                 return
             }
-           /* val serverUrl = "${defaultProject.serverUrl}/key/${defaultProject.centralUserToken}/projects/${defaultProject.centralProjectId}"
 
-            val generalSettings = settingsProvider.getUnprotectedSettings(defaultProject.centralProjectId)
-            generalSettings.save(ProjectKeys.KEY_METADATA_USERNAME, username)
-            generalSettings.save(ProjectKeys.KEY_USERNAME, username)
-            generalSettings.save(ProjectKeys.KEY_METADATA_PHONENUMBER, user.phone)
-            generalSettings.save(ProjectKeys.KEY_METADATA_EMAIL, user.email)
-            generalSettings.save(ProjectKeys.KEY_SERVER_URL, serverUrl)*/
-
-            initProject()
-
-            launchDashboard()
+            lifecycleScope.launch {
+                progressDialog.setMessage("Initializing projects...")
+                withContext(Dispatchers.IO) {
+                    initProject()
+                }
+                launchDashboard()
+            }
         } else {
             Toast.makeText(this, body?.message ?: "Login failed", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun initProject() {
-
-        // Clear current project
+        // Clear old projects
         projectsRepository.deleteAll()
-
         settingsProvider.getMetaSettings().save(MetaKeys.CURRENT_PROJECT_ID, null)
 
         val userJson = settingsProvider.getMetaSettings().getString(MetaKeys.KEY_USER) ?: return
         val user = Gson().fromJson(userJson, User::class.java)
 
-        // Clear old projects
-        projectsRepository.deleteAll()
-        //settingsProvider.getUnprotectedSettings().clear()
         // Save all projects and their settings
         (user.userProjects ?: emptyList()).forEach { project ->
-
-
             // Save project
             projectsRepository.save(
                 Project.Saved(project.centralProjectId, project.projectName, project.icon, project.color)
@@ -208,8 +202,8 @@ class LoginActivity : androidx.appcompat.app.AppCompatActivity() {
                 save(ProjectKeys.KEY_METADATA_PHONENUMBER, user.phone)
                 save(ProjectKeys.KEY_METADATA_EMAIL, user.email)
                 save(ProjectKeys.KEY_SERVER_URL, serverUrl)
+                save(ProjectKeys.KEY_PROTOCOL, ProjectKeys.PROTOCOL_SERVER)
             }
-
         }
 
         // Set default project as current (if exists)

@@ -14,11 +14,12 @@ espresso = "3.7.0"
 kotlin = "2.3.10"
 mockito = "5.21.0"
 coroutines="1.10.2"
+constraintlayout = "2.2.1"
 
 [libraries]
 firebaseCrashlyticsGradle = { group = "com.google.firebase", name = "firebase-crashlytics-gradle", version = "3.0.6" }
 googleServices = { group = "com.google.gms", name = "google-services", version = "4.4.4" }
-gradle = { group = "com.android.tools.build", name = "gradle", version = "9.0.0" }
+gradle = { group = "com.android.tools.build", name = "gradle", version = "9.2.1" }
 kotlinGradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinStdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
 ktlintGradle = { group = "org.jlleitschuh.gradle", name = "ktlint-gradle", version = "14.0.1" }
@@ -44,6 +45,7 @@ androidxPreferenceKtx = { group = "androidx.preference", name = "preference-ktx"
 androidxFragmentKtx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "androidxFragment" }
 androidMaterial = { group = "com.google.android.material", name = "material", version = "1.12.0" } # Check if https://github.com/getodk/collect/issues/6974 is still an issue before upgrading
 androidFlexbox = { group = "com.google.android.flexbox", name = "flexbox", version = "3.0.0" }
+androidxConstraintLayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidxComposeBom = { group = "androidx.compose", name = "compose-bom", version = "2026.02.00" }
 androidXComposeMaterial = { group = "androidx.compose.material3", name = "material3" }
 androidXComposeMaterialIconsExtended = { group = "androidx.compose.material", name = "material-icons-extended" }

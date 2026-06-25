@@ -21,6 +21,8 @@ import android.net.Uri;
 import androidx.annotation.NonNull;
 
 import org.odk.collect.android.application.Collect;
+import org.odk.collect.android.instancemanagement.send.FormUploadAuthRequestedException;
+import org.odk.collect.android.instancemanagement.send.FormUploadException;
 import org.odk.collect.android.utilities.ResponseMessageParser;
 import org.odk.collect.android.utilities.WebCredentialsUtils;
 import org.odk.collect.forms.instances.Instance;

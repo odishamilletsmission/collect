@@ -13,6 +13,7 @@ object CollectStrictMode {
                 .detectAll()
                 .permitDiskReads() // shared preferences are being read on main thread (`GetAndSubmitFormTest`)
                 .permitDiskWrites() // files are being created on the fly (`GetAndSubmitFormTest`)
+                .permitCustomSlowCalls() // `newSSLContext` is slow and called on main thread by OkHttp
                 .penaltyDeath()
 
             policyBuilder.permitUnbufferedIo() // `ObjectInputStream#readObject` calls
