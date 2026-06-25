@@ -161,6 +161,7 @@ import org.odk.collect.android.utilities.FormsRepositoryProvider;
 import org.odk.collect.android.utilities.InstancesRepositoryProvider;
 import org.odk.collect.android.utilities.MediaUtils;
 import org.odk.collect.android.utilities.SavepointsRepositoryProvider;
+import org.odk.collect.android.utilities.SoftKeyboardController;
 import org.odk.collect.android.widgets.GeoShapeWidget;
 import org.odk.collect.android.widgets.GeoTraceWidget;
 import org.odk.collect.android.widgets.MediaWidgetAnswerViewModel;
@@ -168,11 +169,12 @@ import org.odk.collect.android.widgets.QuestionWidget;
 import org.odk.collect.android.widgets.datetime.DateTimeWidget;
 import org.odk.collect.android.widgets.datetime.pickers.CustomDatePickerDialog;
 import org.odk.collect.android.widgets.datetime.pickers.CustomTimePickerDialog;
+import org.odk.collect.android.widgets.geo.GeoPointMapDialogFragment;
+import org.odk.collect.android.widgets.geo.GeoPolyDialogFragment;
 import org.odk.collect.android.widgets.interfaces.WidgetDataReceiver;
 import org.odk.collect.android.widgets.items.SelectOneFromMapDialogFragment;
 import org.odk.collect.android.widgets.utilities.ExternalAppRecordingRequester;
 import org.odk.collect.android.widgets.utilities.FormControllerWaitingForDataRegistry;
-import org.odk.collect.android.widgets.geo.GeoPolyDialogFragment;
 import org.odk.collect.android.widgets.utilities.InternalRecordingRequester;
 import org.odk.collect.android.widgets.utilities.WaitingForDataRegistry;
 import org.odk.collect.androidshared.system.IntentLauncher;
@@ -183,6 +185,7 @@ import org.odk.collect.androidshared.ui.DialogUtils;
 import org.odk.collect.androidshared.ui.FragmentFactoryBuilder;
 import org.odk.collect.androidshared.ui.SnackbarUtils;
 import org.odk.collect.androidshared.ui.ToastUtils;
+import org.odk.collect.async.DefaultDispatcherProvider;
 import org.odk.collect.async.Scheduler;
 import org.odk.collect.audioclips.AudioPlayer;
 import org.odk.collect.audioclips.AudioPlayerFactory;
@@ -367,6 +370,9 @@ public class FormFillingActivity extends LocalizedActivity implements CollectCom
     @Inject
     public ProjectDependencyModuleFactory projectDependencyModuleFactory;
 
+    @Inject
+    public SoftKeyboardController softKeyboardController;
+
     private final LocationProvidersReceiver locationProvidersReceiver = new LocationProvidersReceiver();
 
     private SwipeHandler swipeHandler;
@@ -444,13 +450,15 @@ public class FormFillingActivity extends LocalizedActivity implements CollectCom
                 projectDependencyModuleFactory
         );
 
+        DefaultDispatcherProvider dispatcherProvider = new DefaultDispatcherProvider();
         this.getSupportFragmentManager().setFragmentFactory(new FragmentFactoryBuilder()
                 .forClass(AudioRecordingControllerFragment.class, () -> new AudioRecordingControllerFragment(viewModelFactory))
                 .forClass(SaveFormProgressDialogFragment.class, () -> new SaveFormProgressDialogFragment(viewModelFactory))
                 .forClass(DeleteRepeatDialogFragment.class, () -> new DeleteRepeatDialogFragment(viewModelFactory))
                 .forClass(BackgroundAudioPermissionDialogFragment.class, () -> new BackgroundAudioPermissionDialogFragment(viewModelFactory))
                 .forClass(SelectOneFromMapDialogFragment.class, () -> new SelectOneFromMapDialogFragment(viewModelFactory))
-                .forClass(GeoPolyDialogFragment.class, () -> new GeoPolyDialogFragment(viewModelFactory, scheduler))
+                .forClass(GeoPolyDialogFragment.class, () -> new GeoPolyDialogFragment(viewModelFactory, dispatcherProvider))
+                .forClass(GeoPointMapDialogFragment.class, () -> new GeoPointMapDialogFragment(viewModelFactory, dispatcherProvider))
                 .forClass(RangePickerDialogFragment.class, () -> new RangePickerDialogFragment(viewModelFactory))
                 .build());
 
@@ -643,27 +651,6 @@ public class FormFillingActivity extends LocalizedActivity implements CollectCom
                 });
             }
         });
-    }
-
-    private void handleValidationResult(ValidationResult validationResult) {
-        if (validationResult instanceof FailedValidationResult failedValidationResult) {
-            String errorMessage = failedValidationResult.getCustomErrorMessage();
-            if (errorMessage == null) {
-                errorMessage = getString(failedValidationResult.getDefaultErrorMessage());
-            }
-            ODKView view = getCurrentViewIfODKView();
-            if (view != null) {
-                view.setErrorForQuestionWithIndex(failedValidationResult.getIndex(), errorMessage);
-            }
-            swipeHandler.setBeenSwiped(false);
-        } else if (validationResult instanceof SuccessValidationResult) {
-            SnackbarUtils.showSnackbar(
-                    findViewById(R.id.llParent),
-                    getString(org.odk.collect.strings.R.string.success_form_validation),
-                    SnackbarUtils.DURATION_LONG,
-                    findViewById(R.id.buttonholder)
-            );
-        }
     }
 
     private void formControllerAvailable(@NonNull FormController formController, @NonNull Form form, @Nullable Instance instance) {
@@ -1852,17 +1839,35 @@ public class FormFillingActivity extends LocalizedActivity implements CollectCom
         CurrentFormIndex index = formEntryViewModel.getCurrentIndex().getValue();
         ValidationResult validationResult = index.getValidationResult();
 
-        if (validationResult != null) {
-            handleValidationResult(validationResult);
-        } else {
+        if (validationResult instanceof FailedValidationResult failedValidationResult) {
+            String errorMessage = failedValidationResult.getCustomErrorMessage();
+            if (errorMessage == null) {
+                errorMessage = getString(failedValidationResult.getDefaultErrorMessage());
+            }
             ODKView view = getCurrentViewIfODKView();
             if (view != null) {
-                if (index.getQuestionIndex() != null) {
-                    view.focusToTopOf(index.getQuestionIndex());
-                } else {
-                    view.setFocus(this);
-                }
+                view.setErrorForQuestionWithIndex(failedValidationResult.getIndex(), errorMessage);
             }
+            swipeHandler.setBeenSwiped(false);
+            return;
+        } else if (validationResult instanceof SuccessValidationResult) {
+            SnackbarUtils.showSnackbar(
+                    findViewById(R.id.llParent),
+                    getString(org.odk.collect.strings.R.string.success_form_validation),
+                    SnackbarUtils.DURATION_LONG,
+                    findViewById(R.id.buttonholder)
+            );
+        }
+
+        ODKView view = getCurrentViewIfODKView();
+        if (view != null) {
+            if (index.getQuestionIndex() != null) {
+                view.focusToTopOf(index.getQuestionIndex());
+            } else {
+                view.setFocus(this);
+            }
+        } else {
+            softKeyboardController.hideSoftKeyboard(currentView);
         }
     }
 

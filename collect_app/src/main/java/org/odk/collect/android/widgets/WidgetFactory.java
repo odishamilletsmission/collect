@@ -26,10 +26,11 @@ import androidx.lifecycle.LifecycleOwner;
 
 import org.javarosa.core.model.Constants;
 import org.javarosa.form.api.FormEntryPrompt;
+import org.odk.collect.analytics.Analytics;
+import org.odk.collect.android.analytics.AnalyticsEvents;
 import org.odk.collect.android.formentry.FormEntryViewModel;
 import org.odk.collect.android.formentry.PrinterWidgetViewModel;
 import org.odk.collect.android.formentry.questions.QuestionDetails;
-import org.odk.collect.android.geo.MapConfiguratorProvider;
 import org.odk.collect.android.javarosawrapper.FormController;
 import org.odk.collect.android.storage.StoragePathProvider;
 import org.odk.collect.android.utilities.Appearances;
@@ -40,6 +41,7 @@ import org.odk.collect.android.widgets.barcode.BarcodeWidget;
 import org.odk.collect.android.widgets.datetime.DateTimeWidget;
 import org.odk.collect.android.widgets.datetime.DateWidget;
 import org.odk.collect.android.widgets.datetime.TimeWidget;
+import org.odk.collect.android.widgets.image.ImageWidget;
 import org.odk.collect.android.widgets.items.LabelWidget;
 import org.odk.collect.android.widgets.items.LikertWidget;
 import org.odk.collect.android.widgets.items.ListMultiWidget;
@@ -183,8 +185,7 @@ public class WidgetFactory {
                                 new ActivityGeoDataRequester(permissionsProvider, activity), dependencies);
                         break;
                     case Constants.DATATYPE_GEOTRACE:
-                        questionWidget = new GeoTraceWidget(activity, questionDetails,
-                                MapConfiguratorProvider.getConfigurator(), new ActivityGeoDataRequester(permissionsProvider, activity), dependencies);
+                        questionWidget = new GeoTraceWidget(activity, questionDetails, new ActivityGeoDataRequester(permissionsProvider, activity), dependencies);
                         break;
                     case Constants.DATATYPE_BARCODE:
                         questionWidget = new BarcodeWidget(activity, questionDetails, dependencies, waitingForDataRegistry, new CameraUtils());
@@ -253,6 +254,7 @@ public class WidgetFactory {
                 break;
             case Constants.CONTROL_SELECT_ONE:
                 questionWidget = getSelectOneWidget(appearance, questionDetails, dependencies);
+                logGallerySelect(appearance);
                 break;
             case Constants.CONTROL_SELECT_MULTI:
                 // search() appearance/function (not part of XForms spec) added by SurveyCTO gets
@@ -272,6 +274,8 @@ public class WidgetFactory {
                 } else {
                     questionWidget = new SelectMultiWidget(activity, questionDetails, formEntryViewModel, dependencies);
                 }
+
+                logGallerySelect(appearance);
                 break;
             case Constants.CONTROL_RANK:
                 questionWidget = new RankingWidget(activity, questionDetails, waitingForDataRegistry, formEntryViewModel, dependencies);
@@ -337,4 +341,10 @@ public class WidgetFactory {
         return questionWidget;
     }
 
+    private void logGallerySelect(String appearance) {
+        if (appearance.contains(Appearances.NO_BUTTONS) &&
+                (appearance.contains(Appearances.COLUMNS_N) || appearance.contains(Appearances.COLUMNS))) {
+            Analytics.log(AnalyticsEvents.GALLERY_SELECT, "form");
+        }
+    }
 }
