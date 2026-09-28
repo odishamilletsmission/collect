@@ -171,7 +171,7 @@ public class ActivityGeoDataRequesterTest {
     @Test
     public void requestGeoPoint_whenWidgetHasAllowMockAccuracy_addsItToIntent() {
         when(prompt.getBindAttributes())
-                .thenReturn(asList(TreeElement.constructAttributeElement("odk", "allow-mock-accuracy", "true")));
+                .thenReturn(List.of(TreeElement.constructAttributeElement("odk", "allow-mock-accuracy", "true")));
 
         activityGeoDataRequester.requestGeoPoint(prompt, waitingForDataRegistry);
 
@@ -180,7 +180,7 @@ public class ActivityGeoDataRequesterTest {
         assertTrue(startedIntent.getBooleanExtra(EXTRA_RETAIN_MOCK_ACCURACY, false));
 
         when(prompt.getBindAttributes())
-                .thenReturn(asList(TreeElement.constructAttributeElement("odk", "allow-mock-accuracy", "false")));
+                .thenReturn(List.of(TreeElement.constructAttributeElement("odk", "allow-mock-accuracy", "false")));
 
         activityGeoDataRequester.requestGeoPoint(prompt, waitingForDataRegistry);
 

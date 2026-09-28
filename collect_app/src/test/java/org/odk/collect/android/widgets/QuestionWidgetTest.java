@@ -29,6 +29,8 @@ import org.odk.collect.android.support.WidgetTestActivity;
 import org.odk.collect.audioclips.AudioPlayer;
 import org.odk.collect.audioclips.Clip;
 
+import java.util.List;
+
 @RunWith(AndroidJUnit4.class)
 public class QuestionWidgetTest {
 
@@ -57,7 +59,7 @@ public class QuestionWidgetTest {
     }
 
     private void overrideDependencyModule() throws Exception {
-        ReferenceManager referenceManager = setupFakeReferenceManager(asList(new Pair<>("ref", "blah.mp3")));
+        ReferenceManager referenceManager = setupFakeReferenceManager(List.of(new Pair<>("ref", "blah.mp3")));
         CollectHelpers.overrideAppDependencyModule(new AppDependencyModule() {
 
             @Override

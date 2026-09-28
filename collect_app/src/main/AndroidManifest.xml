@@ -1,12 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><!--
- Copyright (C) 2009 University of Washington Licensed under the Apache
-License, Version 2.0 (the "License"); you may not use this file except in
-compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
-OR CONDITIONS OF ANY KIND, either express or implied. See the License for
-the specific language governing permissions and limitations under the License.
--->
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="GoogleAppIndexingWarning">
@@ -28,30 +20,23 @@ the specific language governing permissions and limitations under the License.
         android:required="false" />
     <uses-feature
         android:glEsVersion="0x00030000"
-        tools:node="remove" />
-
-    <!-- Dangerous permissions -->
+        tools:node="remove" /> <!-- Dangerous permissions -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-
-    <!-- Normal permissions -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Normal permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-
     <!--
         Since we use Scoped Storage, we should not need this permission. However, we discovered that
         this might be required in some rare cases, probably due to bugs in Android OS.
         See: https://github.com/getodk/collect/issues/5145
-     -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-
-    <!-- Removed in API 23 -->
+    -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> <!-- Removed in API 23 -->
     <uses-permission
         android:name="android.permission.USE_CREDENTIALS"
         android:maxSdkVersion="22" />
@@ -77,6 +62,12 @@ the specific language governing permissions and limitations under the License.
         android:smallScreens="true"
         android:xlargeScreens="true" />
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+        </intent>
+    </queries>
+
     <application
         android:name=".application.Collect"
         android:allowBackup="false"
@@ -86,8 +77,9 @@ the specific language governing permissions and limitations under the License.
         android:largeHeap="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
-        android:usesCleartextTraffic="true"
-        android:theme="@style/Theme.Collect">
+        android:theme="@style/Theme.Collect"
+        android:usesCleartextTraffic="true">
+
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -99,23 +91,30 @@ the specific language governing permissions and limitations under the License.
                 android:resource="@xml/provider_paths" />
         </provider>
 
+        <activity android:name=".activities.FirstLaunchActivity"></activity>
         <activity
-            android:name=".activities.FirstLaunchActivity">
-        </activity>
-
-        <activity
-            android:name=".mainmenu.MainMenuActivity"
-            android:theme="@style/Theme.Collect.SplashScreen"
+            android:name=".wassan.activity.SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity android:name="org.odk.collect.android.activities.CrashHandlerActivity" />
-
+        <activity
+            android:name=".mainmenu.MainMenuActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Collect.SplashScreen"></activity>
+        <activity
+            android:name=".wassan.activity.MainActivity"
+            android:exported="false"></activity>
+        <activity
+            android:name=".wassan.activity.LoginActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize"></activity>
+        <activity android:name=".wassan.app.CustomInstanceChooserList" />
+        <activity android:name=".activities.CrashHandlerActivity" />
         <activity
             android:name=".activities.ScannerWithFlashlightActivity"
             android:configChanges="orientation|screenSize"/>
@@ -132,15 +131,90 @@ the specific language governing permissions and limitations under the License.
             <property android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY" android:value="true" />
         </activity>
         <activity android:name=".activities.InstanceChooserList" />
+
+        <activity-alias
+            android:name=".activities.InstanceChooserList"
+            android:exported="true"
+            android:targetActivity=".activities.InstanceChooserList"
+            tools:ignore="AppLinkUrlError">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <action android:name="android.intent.action.PICK" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="vnd.android.cursor.dir/vnd.odk.instance" />
+            </intent-filter>
+        </activity-alias>
+
         <activity
             android:name=".formlists.blankformlist.BlankFormListActivity"
             android:launchMode="singleTop" />
+
+        <activity-alias
+            android:name=".activities.FormChooserList"
+            android:exported="true"
+            android:targetActivity=".formlists.blankformlist.BlankFormListActivity"
+            tools:ignore="AppLinkUrlError">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <action android:name="android.intent.action.PICK" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="vnd.android.cursor.dir/vnd.odk.form" />
+            </intent-filter>
+        </activity-alias>
+
         <activity android:name=".activities.FormDownloadListActivity" />
+
+        <activity-alias
+            android:name=".activities.FormDownloadList"
+            android:exported="true"
+            android:targetActivity=".activities.FormDownloadListActivity">
+            <intent-filter>
+                <action android:name="org.odk.collect.android.FORM_DOWNLOAD" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="vnd.android.cursor.dir/vnd.odk.form" />
+            </intent-filter>
+        </activity-alias>
+
         <activity android:name=".activities.DeleteFormsActivity" />
         <activity
             android:name=".instancemanagement.send.InstanceUploaderListActivity"
             android:configChanges="orientation|screenSize" />
+
+        <activity-alias
+            android:name=".activities.InstanceUploaderList"
+            android:exported="true"
+            android:targetActivity=".instancemanagement.send.InstanceUploaderListActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
         <activity android:name=".instancemanagement.send.InstanceUploaderActivity" />
+
+        <activity-alias
+            android:name=".activities.InstanceUploaderActivity"
+            android:exported="true"
+            android:targetActivity=".instancemanagement.send.InstanceUploaderActivity">
+            <intent-filter>
+                <action android:name="org.odk.collect.android.INSTANCE_UPLOAD" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="vnd.android.cursor.dir/vnd.odk.instance" />
+            </intent-filter>
+        </activity-alias>
+
         <activity android:name=".activities.AboutActivity" />
         <activity android:name=".configure.qr.QRCodeTabsActivity" />
         <activity
@@ -162,22 +236,16 @@ the specific language governing permissions and limitations under the License.
             android:name="org.odk.collect.errors.ErrorActivity"
             android:theme="@style/Theme.Collect"
             tools:replace="android:theme" />
-
         <activity
             android:name="org.odk.collect.entities.browser.EntityBrowserActivity"
             android:theme="@style/Theme.Collect"
             tools:replace="android:theme" />
-
         <activity android:name=".activities.FormMapActivity" />
         <activity android:name=".activities.BearingActivity" />
         <activity
             android:name="org.odk.collect.selfiecamera.CaptureSelfieActivity"
             android:theme="@style/Theme.Collect"
-            tools:replace="android:theme">
-
-        </activity>
-
-        <!-- Configure this key by setting GOOGLE_MAPS_API_KEY in secrets.properties. -->
+            tools:replace="android:theme"></activity> <!-- Configure this key by setting GOOGLE_MAPS_API_KEY in secrets.properties. -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/GOOGLE_MAPS_API_KEY" />
@@ -185,19 +253,15 @@ the specific language governing permissions and limitations under the License.
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version"
             tools:replace="android:value" /> <!-- integer/google_play_services_version -->
-
         <meta-data
             android:name="firebase_analytics_collection_enabled"
             android:value="false" />
-
         <meta-data
             android:name="firebase_crashlytics_collection_enabled"
             android:value="false" />
-
         <meta-data
             android:name="google_analytics_adid_collection_enabled"
             android:value="false" />
-
         <meta-data
             android:name="google_analytics_ssaid_collection_enabled"
             android:value="false" />
@@ -214,7 +278,6 @@ the specific language governing permissions and limitations under the License.
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="barcode" />
-
         <!--
              ******************External API, DO NOT CHANGE BEFORE DISCUSSING***********************
              * The providers and activities below are available for external applications to      *
@@ -223,126 +286,53 @@ the specific language governing permissions and limitations under the License.
              * change. If an activity needs to be renamed internally, use an activity-alias. If   *
              * the external API needs to be expanded, introduce carefully-named actions.          *
              **************************************************************************************
-         -->
-
+        -->
         <provider
             android:name=".external.FormsProvider"
-            android:authorities="org.odk.collect.android.provider.odk.forms"
+            android:authorities="org.wassan.ecocollect.android.provider.odk.forms"
             android:exported="true" />
         <provider
             android:name=".external.InstanceProvider"
-            android:authorities="org.odk.collect.android.provider.odk.instances"
-            android:exported="true" />
-
-        <activity-alias
-            android:name=".activities.FormEntryActivity"
-            android:targetActivity=".external.FormUriActivity"
-            tools:ignore="AppLinkUrlError"
-            android:exported="true">
-        </activity-alias>
-
-        <activity-alias
-            android:name=".activities.InstanceChooserList"
-            android:targetActivity=".activities.InstanceChooserList"
-            android:exported="true"
-            tools:ignore="AppLinkUrlError">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <action android:name="android.intent.action.EDIT" />
-                <action android:name="android.intent.action.PICK" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-
-                <data android:mimeType="vnd.android.cursor.dir/vnd.odk.instance" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".activities.FormChooserList"
-            android:targetActivity=".formlists.blankformlist.BlankFormListActivity"
-            android:exported="true"
-            tools:ignore="AppLinkUrlError">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <action android:name="android.intent.action.EDIT" />
-                <action android:name="android.intent.action.PICK" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-
-                <data android:mimeType="vnd.android.cursor.dir/vnd.odk.form" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".activities.FormDownloadList"
-            android:targetActivity=".activities.FormDownloadListActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="org.odk.collect.android.FORM_DOWNLOAD" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="vnd.android.cursor.dir/vnd.odk.form" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".activities.InstanceUploaderList"
-            android:targetActivity=".instancemanagement.send.InstanceUploaderListActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <action android:name="android.intent.action.EDIT" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".activities.InstanceUploaderActivity"
-            android:targetActivity=".instancemanagement.send.InstanceUploaderActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="org.odk.collect.android.INSTANCE_UPLOAD" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="vnd.android.cursor.dir/vnd.odk.instance" />
-            </intent-filter>
-        </activity-alias>
-
-        <!-- Enable Shortcuts for Command Actions -->
+            android:authorities="org.wassan.ecocollect.android.provider.odk.instances"
+            android:exported="true" /> <!-- Enable Shortcuts for Command Actions -->
         <activity
             android:name=".external.AndroidShortcutsActivity"
+            android:exported="true"
             android:label="ODK Form"
-            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
-            android:exported="true">
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-
-        <!-- Supports VIEW and EDIT actions for forms and instances (documented at
+        <!--
+ Supports VIEW and EDIT actions for forms and instances (documented at
         https://docs.getodk.org/launch-collect-from-app/#using-a-uri-to-edit-a-form-or-instance).
-        Do not use the activity directly as its name/package might change. -->
+        Do not use the activity directly as its name/package might change.
+        -->
         <activity
             android:name=".external.FormUriActivity"
             android:exported="true"
             tools:ignore="AppLinkUrlError">
-
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.EDIT" />
 
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="vnd.android.cursor.item/vnd.odk.form" />
                 <data android:mimeType="vnd.android.cursor.item/vnd.odk.instance" />
             </intent-filter>
         </activity>
-        <activity android:name="org.odk.collect.android.formhierarchy.FormHierarchyFragmentHostActivity" />
+
+        <activity-alias
+            android:name=".activities.FormEntryActivity"
+            android:exported="true"
+            android:targetActivity=".external.FormUriActivity"
+            tools:ignore="AppLinkUrlError"></activity-alias>
+
+        <activity android:name=".formhierarchy.FormHierarchyFragmentHostActivity" />
     </application>
 
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-        </intent>
-    </queries>
 </manifest>

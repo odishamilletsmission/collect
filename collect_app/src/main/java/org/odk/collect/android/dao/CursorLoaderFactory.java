@@ -1,5 +1,8 @@
 package org.odk.collect.android.dao;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 
 import androidx.loader.content.CursorLoader;
@@ -8,8 +11,11 @@ import org.odk.collect.android.application.Collect;
 import org.odk.collect.android.database.instances.DatabaseInstanceColumns;
 import org.odk.collect.android.external.InstancesContract;
 import org.odk.collect.android.projects.ProjectsDataService;
+import org.odk.collect.android.wassan.app.FilterHelper;
 import org.odk.collect.androidshared.system.UriExtKt;
 import org.odk.collect.forms.instances.Instance;
+
+import java.util.Arrays;
 
 @Deprecated
 public class CursorLoaderFactory {
@@ -21,103 +27,138 @@ public class CursorLoaderFactory {
         this.projectsDataService = projectsDataService;
     }
 
+    //update bu Niranjan
     public CursorLoader createSentInstancesCursorLoader(CharSequence charSequence, String sortOrder) {
         CursorLoader cursorLoader;
+
+        String selection;
+        String[] selectionArgs;
+
         if (charSequence.length() == 0) {
-            String selection = DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=?";
-            String[] selectionArgs = {Instance.STATUS_SUBMITTED, Instance.STATUS_SUBMISSION_FAILED};
-
-            cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
+            selection = "(" + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=?)";
+            selectionArgs = new String[]{Instance.STATUS_SUBMITTED, Instance.STATUS_SUBMISSION_FAILED};
         } else {
-            String selection =
-                    "(" + DatabaseInstanceColumns.STATUS + "=? or "
-                            + DatabaseInstanceColumns.STATUS + "=?) and "
-                            + DatabaseInstanceColumns.DISPLAY_NAME + " LIKE ?";
-            String[] selectionArgs = {
-                    Instance.STATUS_SUBMITTED,
-                    Instance.STATUS_SUBMISSION_FAILED,
-                    "%" + charSequence + "%"};
-
-            cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
+            selection = "(" + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=?) and "
+                    + DatabaseInstanceColumns.DISPLAY_NAME + " LIKE ?";
+            selectionArgs = new String[]{Instance.STATUS_SUBMITTED, Instance.STATUS_SUBMISSION_FAILED, "%" + charSequence + "%"};
         }
+
+        // Append FILTER_ID from FilterHelper if available
+        String filterId = FilterHelper.getInstance().getFilterId();
+        if (filterId != null && !filterId.isEmpty()) {
+            selection += " AND " + DatabaseInstanceColumns.JR_FORM_ID + " = ?";
+            selectionArgs = Arrays.copyOf(selectionArgs, selectionArgs.length + 1);
+            selectionArgs[selectionArgs.length - 1] = filterId;
+        }
+
+        cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
 
         return cursorLoader;
     }
-
+    //update by Niranjan
     public CursorLoader createEditableInstancesCursorLoader(CharSequence charSequence, String sortOrder) {
         CursorLoader cursorLoader;
-        if (charSequence.length() == 0) {
-            String selection = DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=?";
-            String[] selectionArgs = {Instance.STATUS_INCOMPLETE, Instance.STATUS_INVALID, Instance.STATUS_VALID, Instance.STATUS_NEW_EDIT};
+        String selection;
+        String[] selectionArgs;
 
-            cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
+        if (charSequence.length() == 0) {
+            selection = "(" + DatabaseInstanceColumns.STATUS + "=? OR " + DatabaseInstanceColumns.STATUS + "=? OR " + DatabaseInstanceColumns.STATUS + "=?)";
+            selectionArgs = new String[]{Instance.STATUS_INCOMPLETE, Instance.STATUS_INVALID, Instance.STATUS_VALID};
+
         } else {
-            String selection = "(" + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=?)" +
-                    "and " + DatabaseInstanceColumns.DISPLAY_NAME + " LIKE ?";
-            String[] selectionArgs = {
-                    Instance.STATUS_INCOMPLETE, Instance.STATUS_INVALID, Instance.STATUS_VALID, Instance.STATUS_NEW_EDIT,
+            selection = "(" + DatabaseInstanceColumns.STATUS + "=? OR " + DatabaseInstanceColumns.STATUS + "=? OR " + DatabaseInstanceColumns.STATUS + "=?)" +
+                    " AND " + DatabaseInstanceColumns.DISPLAY_NAME + " LIKE ?";
+            selectionArgs = new String[]{
+                    Instance.STATUS_INCOMPLETE, Instance.STATUS_INVALID, Instance.STATUS_VALID,
                     "%" + charSequence + "%"
             };
-
-            cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
         }
 
+        // Append dynamic FILTER_ID from FilterHelper
+        String filterId = FilterHelper.getInstance().getFilterId();
+        if (filterId != null && !filterId.isEmpty()) {
+            selection += " AND " + DatabaseInstanceColumns.JR_FORM_ID + " = ?";
+            selectionArgs = Arrays.copyOf(selectionArgs, selectionArgs.length + 1);
+            selectionArgs[selectionArgs.length - 1] = filterId;
+        }
+
+
+        // 🔹 Create CursorLoader with final selection
+        cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
         return cursorLoader;
     }
 
+    // update by Niranjan
     public CursorLoader createFinalizedInstancesCursorLoader(CharSequence charSequence, String sortOrder) {
         CursorLoader cursorLoader;
+
+        String selection;
+        String[] selectionArgs;
+
         if (charSequence.length() == 0) {
-            String selection = DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=?";
-            String[] selectionArgs = {Instance.STATUS_COMPLETE, Instance.STATUS_SUBMISSION_FAILED};
-
-            cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
+            selection = "(" + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=?)";
+            selectionArgs = new String[]{Instance.STATUS_COMPLETE, Instance.STATUS_SUBMISSION_FAILED};
         } else {
-            String selection =
-                    "(" + DatabaseInstanceColumns.STATUS + "=? or "
-                            + DatabaseInstanceColumns.STATUS + "=?) and "
-                            + DatabaseInstanceColumns.DISPLAY_NAME + " LIKE ?";
-            String[] selectionArgs = {
-                    Instance.STATUS_COMPLETE,
-                    Instance.STATUS_SUBMISSION_FAILED,
-                    "%" + charSequence + "%"};
-
-            cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
+            selection = "(" + DatabaseInstanceColumns.STATUS + "=? or " + DatabaseInstanceColumns.STATUS + "=?) and "
+                    + DatabaseInstanceColumns.DISPLAY_NAME + " LIKE ?";
+            selectionArgs = new String[]{Instance.STATUS_COMPLETE, Instance.STATUS_SUBMISSION_FAILED, "%" + charSequence + "%"};
         }
+
+        // Append FILTER_ID from FilterHelper if available
+        String filterId = FilterHelper.getInstance().getFilterId();
+        if (filterId != null && !filterId.isEmpty()) {
+            selection += " AND " + DatabaseInstanceColumns.JR_FORM_ID + " = ?";
+            selectionArgs = Arrays.copyOf(selectionArgs, selectionArgs.length + 1);
+            selectionArgs[selectionArgs.length - 1] = filterId;
+        }
+
+        cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
 
         return cursorLoader;
     }
 
+    //update by Niranjan
     public CursorLoader createCompletedUndeletedInstancesCursorLoader(CharSequence charSequence, String sortOrder) {
         CursorLoader cursorLoader;
+
+        String selection;
+        String[] selectionArgs;
+
         if (charSequence.length() == 0) {
-            String selection = DatabaseInstanceColumns.DELETED_DATE + " IS NULL and ("
+            selection = DatabaseInstanceColumns.DELETED_DATE + " IS NULL and ("
                     + DatabaseInstanceColumns.STATUS + "=? or "
                     + DatabaseInstanceColumns.STATUS + "=? or "
                     + DatabaseInstanceColumns.STATUS + "=?)";
 
-            String[] selectionArgs = {Instance.STATUS_COMPLETE,
+            selectionArgs = new String[]{Instance.STATUS_COMPLETE,
                     Instance.STATUS_SUBMISSION_FAILED,
                     Instance.STATUS_SUBMITTED};
-
-            cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
         } else {
-            String selection = DatabaseInstanceColumns.DELETED_DATE + " IS NULL and ("
+            selection = DatabaseInstanceColumns.DELETED_DATE + " IS NULL and ("
                     + DatabaseInstanceColumns.STATUS + "=? or "
                     + DatabaseInstanceColumns.STATUS + "=? or "
                     + DatabaseInstanceColumns.STATUS + "=?) and "
                     + DatabaseInstanceColumns.DISPLAY_NAME + " LIKE ?";
 
-            String[] selectionArgs = {
-                    Instance.STATUS_COMPLETE,
+            selectionArgs = new String[]{Instance.STATUS_COMPLETE,
                     Instance.STATUS_SUBMISSION_FAILED,
                     Instance.STATUS_SUBMITTED,
                     "%" + charSequence + "%"};
-
-            cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
         }
+
+        // Append FILTER_ID from FilterHelper if available
+        String filterId = FilterHelper.getInstance().getFilterId();
+        if (filterId != null && !filterId.isEmpty()) {
+            selection += " AND " + DatabaseInstanceColumns.JR_FORM_ID + " = ?";
+            selectionArgs = Arrays.copyOf(selectionArgs, selectionArgs.length + 1);
+            selectionArgs[selectionArgs.length - 1] = filterId;
+        }
+
+        cursorLoader = getInstancesCursorLoader(selection, selectionArgs, sortOrder);
+
         return cursorLoader;
     }
+
 
     private CursorLoader getInstancesCursorLoader(String selection, String[] selectionArgs, String sortOrder) {
         Uri uri = InstancesContract.getUri(projectsDataService.requireCurrentProject().getUuid());

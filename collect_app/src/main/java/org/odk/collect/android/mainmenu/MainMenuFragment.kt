@@ -169,7 +169,7 @@ class MainMenuFragment(
                 .beginTransaction()
                 .add(
                     org.odk.collect.android.R.id.map_box_initialization_fragment,
-                    MapboxClassInstanceCreator.createMapBoxInitializationFragment()!!
+                    MapboxClassInstanceCreator.createMapBoxInitializationFragment()
                 )
                 .commit()
         }

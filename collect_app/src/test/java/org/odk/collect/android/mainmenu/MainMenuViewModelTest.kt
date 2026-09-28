@@ -139,7 +139,7 @@ class MainMenuViewModelTest {
         viewModel.setSavedForm(uri)
         scheduler.flush()
 
-        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value!!
+        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value
         assertThat(formSavedSnackbarType.message, equalTo(org.odk.collect.strings.R.string.form_saved_as_draft))
         assertThat(formSavedSnackbarType.action, equalTo(org.odk.collect.strings.R.string.edit_form))
     }
@@ -165,7 +165,7 @@ class MainMenuViewModelTest {
         viewModel.setSavedForm(uri)
         scheduler.flush()
 
-        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value!!
+        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value
         assertThat(formSavedSnackbarType.message, equalTo(org.odk.collect.strings.R.string.form_saved_as_draft))
         assertThat(formSavedSnackbarType.action, equalTo(org.odk.collect.strings.R.string.edit_form))
     }
@@ -190,7 +190,7 @@ class MainMenuViewModelTest {
         viewModel.setSavedForm(uri)
         scheduler.flush()
 
-        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value!!
+        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value
         assertThat(formSavedSnackbarType.message, equalTo(org.odk.collect.strings.R.string.form_saved_as_draft))
         assertThat(formSavedSnackbarType.action, equalTo(org.odk.collect.strings.R.string.view_form))
     }
@@ -216,7 +216,7 @@ class MainMenuViewModelTest {
         viewModel.setSavedForm(uri)
         scheduler.flush()
 
-        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value!!
+        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value
         assertThat(formSavedSnackbarType.message, equalTo(org.odk.collect.strings.R.string.form_saved_as_draft))
         assertThat(formSavedSnackbarType.action, equalTo(org.odk.collect.strings.R.string.view_form))
     }
@@ -241,7 +241,7 @@ class MainMenuViewModelTest {
         viewModel.setSavedForm(uri)
         scheduler.flush()
 
-        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value!!
+        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value
         assertThat(formSavedSnackbarType.message, equalTo(org.odk.collect.strings.R.string.form_saved))
         assertThat(formSavedSnackbarType.action, equalTo(org.odk.collect.strings.R.string.view_form))
     }
@@ -267,7 +267,7 @@ class MainMenuViewModelTest {
         viewModel.setSavedForm(uri)
         scheduler.flush()
 
-        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value!!
+        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value
         assertThat(formSavedSnackbarType.message, equalTo(org.odk.collect.strings.R.string.form_saved))
         assertThat(formSavedSnackbarType.action, equalTo(null))
     }
@@ -293,7 +293,7 @@ class MainMenuViewModelTest {
         viewModel.setSavedForm(uri)
         scheduler.flush()
 
-        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value!!
+        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value
         assertThat(formSavedSnackbarType.message, equalTo(org.odk.collect.strings.R.string.form_sending))
         assertThat(formSavedSnackbarType.action, equalTo(org.odk.collect.strings.R.string.view_form))
     }
@@ -320,7 +320,7 @@ class MainMenuViewModelTest {
         viewModel.setSavedForm(uri)
         scheduler.flush()
 
-        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value!!
+        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value
         assertThat(formSavedSnackbarType.message, equalTo(org.odk.collect.strings.R.string.form_sending))
         assertThat(formSavedSnackbarType.action, equalTo(null))
     }
@@ -369,7 +369,7 @@ class MainMenuViewModelTest {
         viewModel.setSavedForm(uri)
         scheduler.flush()
 
-        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value!!
+        val formSavedSnackbarType = viewModel.savedForm.getOrAwaitValue().value
         assertThat(formSavedSnackbarType.message, equalTo(org.odk.collect.strings.R.string.form_sending))
         assertThat(formSavedSnackbarType.action, equalTo(org.odk.collect.strings.R.string.view_form))
     }

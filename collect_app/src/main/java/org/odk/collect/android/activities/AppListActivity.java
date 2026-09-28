@@ -294,6 +294,8 @@ public abstract class AppListActivity extends LocalizedActivity {
         return filterText != null ? filterText : "";
     }
 
+
+
     protected void clearSearchView() {
         searchView.setQuery("", false);
     }

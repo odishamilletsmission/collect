@@ -49,7 +49,7 @@ public class AudioRecordingControllerFragmentTest {
     private MutableNonNullLiveData<Boolean> isBackgroundRecordingEnabled;
     private CustomTabsWebPageService customTabsWebPageService;
 
-    private ViewModelProvider.Factory viewModelFactory = new ViewModelProvider.Factory() {
+    private final ViewModelProvider.Factory viewModelFactory = new ViewModelProvider.Factory() {
         @NonNull
         @Override
         public <T extends ViewModel> T create(@NonNull Class<T> modelClass, @NonNull CreationExtras extras) {

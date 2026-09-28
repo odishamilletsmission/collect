@@ -53,7 +53,6 @@ class BlankFormListActivity : LocalizedActivity(), OnFormItemClickListener {
         setView(R.layout.activity_blank_form_list, false)
         title = getString(org.odk.collect.strings.R.string.enter_data)
         setSupportActionBar(findViewById(org.odk.collect.androidshared.R.id.toolbar))
-
         val menuProvider = BlankFormListMenuProvider(this, viewModel, networkStateProvider)
         addMenuProvider(menuProvider, this)
 

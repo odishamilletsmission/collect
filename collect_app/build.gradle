@@ -55,11 +55,11 @@ android {
     }
 
     defaultConfig {
-        applicationId('org.odk.collect.android')
+        applicationId('org.wassan.ecocollect.android')
         minSdk libs.versions.minSdk.get().toInteger()
         targetSdkVersion libs.versions.targetSdk.get().toInteger()
-        versionCode project.hasProperty('versionCode') ? project.getProperties()['versionCode'].toInteger() : 5112
-        versionName getVersionName()
+        versionCode 2
+        versionName '2025.3.2'
         testInstrumentationRunner('androidx.test.runner.AndroidJUnitRunner')
         vectorDrawables.useSupportLibrary = true
     }
@@ -160,8 +160,9 @@ android {
             useLegacyPackaging = true
         }
         resources {
+            excludes += ['META-INF/ASL-2.0.txt', 'META-INF/LGPL-3.0.txt', 'org/bouncycastle/pqc/crypto/picnic/lowmcL5.bin.properties', 'org/bouncycastle/pqc/crypto/picnic/lowmcL3.bin.properties', 'org/bouncycastle/pqc/crypto/picnic/lowmcL1.bin.properties']
+
             // These library licenses will be referenced in-app
-            excludes += ['META-INF/ASL-2.0.txt', 'META-INF/LGPL-3.0.txt']
 
             // Pick first occurrence of any files that cause conflicts
             pickFirsts += ['META-INF/DEPENDENCIES', 'META-INF/LICENSE', 'META-INF/LICENSE.txt', 'META-INF/NOTICE', 'META-INF/NOTICE.txt', 'META-INF/services/com.fasterxml.jackson.core.JsonFactory', 'META-INF/services/com.fasterxml.jackson.core.ObjectCodec', 'META-INF/services/javax.ws.rs.ext.MessageBodyReader', 'META-INF/services/javax.ws.rs.ext.MessageBodyWriter', 'draftv4/schema', 'draftv3/schema']
@@ -182,9 +183,6 @@ android {
 
         /* Exclude large properties files used by BouncyCastle's Picnic implementation (which
            Collect doesn't use). */
-        exclude 'org/bouncycastle/pqc/crypto/picnic/lowmcL5.bin.properties'
-        exclude 'org/bouncycastle/pqc/crypto/picnic/lowmcL3.bin.properties'
-        exclude 'org/bouncycastle/pqc/crypto/picnic/lowmcL1.bin.properties'
     }
 
     compileOptions {
@@ -229,6 +227,9 @@ configurations.all {
 }
 
 dependencies {
+    implementation libs.androidMaterial
+    implementation libs.androidxActivity
+    implementation libs.androidxConstraintLayout
     coreLibraryDesugaring libs.desugar
 
     implementation project(':shared')
@@ -340,7 +341,13 @@ dependencies {
         exclude group: 'org.hamcrest'
     }
 
+    //Niranjan added
     implementation libs.splashscreen
+    implementation libs.volley
+    implementation libs.glide
+    implementation libs.retrofit
+    implementation libs.converter.gson
+
     implementation libs.androidxNavigationFragmentKtx
 
     var composeBom = platform(libs.androidxComposeBom)

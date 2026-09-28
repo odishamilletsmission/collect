@@ -142,7 +142,6 @@ public class InstanceChooserList extends AppListActivity implements InstanceList
         );
 
         init();
-
         BulkFinalizationViewModel bulkFinalizationViewModel = new BulkFinalizationViewModel(
                 projectsDataService.requireCurrentProject().getUuid(),
                 scheduler,

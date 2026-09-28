@@ -19,6 +19,12 @@ import android.os.AsyncTask;
 
 import androidx.core.util.Pair;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import org.odk.collect.android.application.Collect;
 import org.odk.collect.android.formmanagement.FormsDataService;
 import org.odk.collect.android.formmanagement.ServerFormDetails;
@@ -29,12 +35,18 @@ import org.odk.collect.android.listeners.FormListDownloaderListener;
 import org.odk.collect.android.projects.ProjectDependencyModule;
 import org.odk.collect.android.projects.ProjectsDataService;
 import org.odk.collect.android.utilities.WebCredentialsUtils;
-import org.odk.collect.forms.FormSource;
+import org.odk.collect.android.wassan.model.User;
+import org.odk.collect.android.wassan.model.UserProject;
 import org.odk.collect.forms.FormSourceException;
+import org.odk.collect.settings.SettingsProvider;
+import org.odk.collect.settings.keys.MetaKeys;
+import org.odk.collect.forms.FormSource;
 import org.odk.collect.forms.FormsRepository;
 import org.odk.collect.openrosa.forms.OpenRosaClient;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -71,6 +83,9 @@ public class DownloadFormListTask extends AsyncTask<Void, String, Pair<List<Serv
     @Inject
     ProjectDependencyModuleFactory projectDependencyModuleFactory;
 
+    @Inject
+    SettingsProvider settingsProvider;
+
     public DownloadFormListTask() {
         DaggerUtils.getComponent(Collect.getInstance()).inject(this);
 
@@ -93,6 +108,7 @@ public class DownloadFormListTask extends AsyncTask<Void, String, Pair<List<Serv
 
         try {
             formList = ServerFormUseCases.fetchFormDetails(formsRepository, formSource);
+            processAndFilterFormList(formList);
         } catch (FormSourceException e) {
             exception = e;
         } finally {
@@ -103,6 +119,44 @@ public class DownloadFormListTask extends AsyncTask<Void, String, Pair<List<Serv
 
         return new Pair<>(formList, exception);
     }
+    //add by niranjan
+    private void processAndFilterFormList(List<ServerFormDetails> formList) {
+        if (formList == null || formList.isEmpty()) return;
+
+        String userJson = settingsProvider.getMetaSettings().getString(MetaKeys.KEY_USER);
+        String currentProjectId = settingsProvider.getMetaSettings().getString(MetaKeys.CURRENT_PROJECT_ID);
+
+        if (userJson == null || currentProjectId == null) return;
+
+        Gson gson = new Gson();
+        User user = gson.fromJson(userJson, User.class);
+
+        if (user.getUserProjects() == null || user.getUserProjects().isEmpty()) return;
+
+        UserProject currentProject = null;
+        for (UserProject project : user.getUserProjects()) {
+            if (currentProjectId.equals(project.getCentralProjectId())) {
+                currentProject = project;
+                break;
+            }
+        }
+
+        if (currentProject == null || currentProject.getAssignForms().isEmpty()) return;
+
+        List<String> assignFormIds = currentProject.getAssignForms();
+
+        // Filter formList
+        Iterator<ServerFormDetails> iterator = formList.iterator();
+        while (iterator.hasNext()) {
+            ServerFormDetails form = iterator.next();
+            String formId = form.getFormId();
+            if (formId == null || !assignFormIds.contains(formId)) {
+                iterator.remove();
+            }
+        }
+    }
+
+
 
     @Override
     protected void onPostExecute(Pair<List<ServerFormDetails>, FormSourceException> result) {

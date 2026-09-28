@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:background="@drawable/splash_bg"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".wassan.activity.LoginActivity">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        >
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_gravity="center_vertical"
+            >
+
+            <ImageView
+                android:id="@+id/imageView2"
+                android:layout_width="match_parent"
+                android:layout_height="107dp"
+                android:layout_gravity="center"
+                android:layout_margin="20dp"
+                app:srcCompat="@drawable/logoc" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="32dp"
+                android:layout_marginEnd="32dp"
+                android:layout_marginTop="16dp"
+                android:hint="@string/username"
+                app:boxBackgroundMode="outline"
+                app:boxStrokeColor="#4d4d4d"
+                app:boxStrokeWidthFocused="2dp"
+                app:boxCornerRadiusTopStart="8dp"
+                app:boxCornerRadiusTopEnd="8dp"
+                app:boxCornerRadiusBottomStart="8dp"
+                app:boxCornerRadiusBottomEnd="8dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editTextUsername"
+                    android:layout_width="match_parent"
+                    android:layout_height="55dp"
+                    android:inputType="textPersonName"
+                    android:scrollbars="none"
+                    android:overScrollMode="never"
+                    android:backgroundTint="@android:color/transparent"
+                    android:drawableStart="@drawable/ic_username"
+                    android:drawableTint="#000000"
+                    android:drawablePadding="10dp"
+                    android:paddingStart="16dp"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:textColor="#4d4d4d"
+                    android:textColorHint="#4d4d4d"
+                    android:textSize="18sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="32dp"
+                android:layout_marginEnd="32dp"
+                android:layout_marginTop="16dp"
+                app:passwordToggleEnabled="true"
+                app:passwordToggleTint="#4d4d4d"
+                app:boxStrokeColor="#4d4d4d"
+                >
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/editTextPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="55dp"
+                    android:inputType="textPassword"
+                    android:scrollbars="none"
+                    android:overScrollMode="never"
+                    android:singleLine="true"
+                    android:hint="@string/password"
+                    android:textColor="#4d4d4d"
+                    android:textColorHint="#4d4d4d"
+                    android:textSize="18sp"
+                    android:drawableStart="@drawable/ic_password"
+                    android:drawableTint="#000000"
+                    android:drawablePadding="10dp"
+                    android:paddingStart="16dp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/loginButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="32dp"
+                android:layout_marginStart="32dp"
+                android:backgroundTint="@null"
+                android:background="@drawable/blue_background_btn"
+                android:textColor="#ffffff"
+                android:textSize="23sp"
+                android:textStyle="bold"
+                android:text="@string/login"
+                style="@style/Widget.MaterialComponents.Button" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp">
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_weight="2"
+                    android:layout_height="2dp"
+                    android:background="#DB8917" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/or"
+                    android:textColor="#888"
+                    android:paddingHorizontal="8dp" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_weight="2"
+                    android:layout_height="2dp"
+                    android:background="#DB8917" />
+            </LinearLayout>
+
+
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardLoginWithClap"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="32dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="#009688"
+                android:clickable="true"
+                android:focusable="true">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="10dp">
+
+                    <ImageView
+                        android:id="@+id/wassanLogo"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="8dp"
+                        android:src="@drawable/wassan_logo"
+                        android:contentDescription="WASSAN Logo" />
+
+                    <TextView
+                        android:id="@+id/wassanText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Login with Clap"
+                        android:textColor="@android:color/white"
+                        android:textStyle="bold"
+                        android:textSize="18sp"
+                        android:layout_centerInParent="true" />
+
+                </RelativeLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+
+        </LinearLayout>
+    </ScrollView>
+
+     <ImageView
+            android:id="@+id/imageView3"
+            android:layout_width="wrap_content"
+            android:layout_height="250dp"
+            android:scaleType="fitXY"
+            android:layout_gravity="bottom"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:elevation="-1dp"
+            app:srcCompat="@drawable/loginbottombg" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
